@@ -15,8 +15,15 @@
         <vm:MainViewModel />
     </Design.DataContext>
 
-    <TextBox Text="{Binding Greeting}"
-             HorizontalAlignment="Center"
-             VerticalAlignment="Center" />
-
+    
+    <StackPanel>
+        <TextBox Text="{Binding Greeting}"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center" />
+        
+        <Button Content="Create File System"
+                Command="{Binding createFileSystemCommand}"
+                CommandParameter="Fabric_26.2" />
+        
+    </StackPanel>
 </Window>
