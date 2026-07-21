@@ -20,10 +20,9 @@
         <TextBox Text="{Binding Greeting}"
                  HorizontalAlignment="Center"
                  VerticalAlignment="Center" />
-        
-        <Button Content="Create File System"
-                Command="{Binding createFileSystemCommand}"
-                CommandParameter="Fabric_26.2" />
+
+		<Button Content="Launch Minecraft"
+				Command="{Binding launchMinecraftCommand}" />
         
     </StackPanel>
 </Window>
