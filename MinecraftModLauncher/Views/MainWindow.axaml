@@ -3,36 +3,61 @@
         xmlns:vm="using:MinecraftModLauncher.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:internal="clr-namespace:Avalonia.Dialogs.Internal;assembly=Avalonia.Dialogs"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        Width="1200"
+        Height="800"
         x:Class="MinecraftModLauncher.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="MinecraftModLauncher">
+        Title="MinecraftModLauncher"
+        x:Name="RootWindow">
 
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE,
              to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
         <vm:MainViewModel />
     </Design.DataContext>
+	
+	<!-- Parent stack panel -->
+    <StackPanel Orientation="Horizontal" Spacing="10" Margin="20">
+	    
+	    <StackPanel Margin="20" Width='600'>
+	        <TextBox Text="{Binding Greeting}"
+	                 HorizontalAlignment="Center"
+	                 VerticalAlignment="Center" />
 
-    
-    <StackPanel>
-        <TextBox Text="{Binding Greeting}"
-                 HorizontalAlignment="Center"
-                 VerticalAlignment="Center" />
+			<Button Content="Sign in with Microsoft"
+	            Command="{Binding signInCommand}" />
 
-		<Button Content="Sign in with Microsoft"
-            Command="{Binding signInCommand}" />
+			<StackPanel Spacing="5" IsVisible="{Binding UserCode, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+				<TextBlock Text="Go to:" />
+				<TextBlock Text="{Binding VerificationUrl}" FontWeight="Bold" />
+				<TextBlock Text="Enter this code:" />
+				<TextBlock Text="{Binding UserCode}" FontSize="28" FontWeight="Bold" />
+			</StackPanel>
 
-		<StackPanel Spacing="5" IsVisible="{Binding UserCode, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-			<TextBlock Text="Go to:" />
-			<TextBlock Text="{Binding VerificationUrl}" FontWeight="Bold" />
-			<TextBlock Text="Enter this code:" />
-			<TextBlock Text="{Binding UserCode}" FontSize="28" FontWeight="Bold" />
-		</StackPanel>
-
-		<Button Content="Launch Minecraft"
-				Command="{Binding launchMinecraftCommand}" />
-        
+			<Button Content="Launch Minecraft"
+					Command="{Binding launchMinecraftCommand}" />
+	        
+	    </StackPanel>
+	    
+	    <StackPanel Margin="20" Width="500">
+		    <TextBlock Margin="0 5" HorizontalAlignment="Center">Game logs:</TextBlock>
+		    <ListBox x:Name="GameLogs" Height="700" ItemsSource="{Binding GameLogs}">
+			    <ListBox.Styles>
+				    <Style Selector="ListBoxItem">
+					    <Setter Property="Margin" Value="0,2" />
+					    <Setter Property="Padding" Value="4,2" />
+				    </Style>
+			    </ListBox.Styles>
+			    <ListBox.ItemTemplate>
+				    <DataTemplate>
+					    <TextBlock Text="{Binding}" 
+					               TextWrapping="Wrap" />
+				    </DataTemplate>
+				</ListBox.ItemTemplate>
+		    </ListBox>
+	    </StackPanel>
     </StackPanel>
 </Window>

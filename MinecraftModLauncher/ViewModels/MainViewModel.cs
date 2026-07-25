@@ -5,6 +5,7 @@ using MinecraftModLauncher.Models;
 using MinecraftModLauncher.Services;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
@@ -12,11 +13,15 @@ using System.Security.Principal;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Controls;
 
 namespace MinecraftModLauncher.ViewModels {
     public partial class MainViewModel : ViewModelBase {
         [ObservableProperty]
         private string _greeting = "Click the button below to get started!";
+        
+        public ObservableCollection<string> GameLogs { get; } = new();
+        
         [ObservableProperty]
         private MinecraftAccount? _account;
 
@@ -33,12 +38,17 @@ namespace MinecraftModLauncher.ViewModels {
         };
         private static readonly SemaphoreSlim _downloadSemaphore = new(10);
         private readonly MicrosoftAuthService _authService = new();
+        private readonly JavaService _javaService;
+        
+        public MainViewModel() {
+            _javaService = new JavaService(launcherRoot);
+        }
 
 
         private async Task<JsonElement> fetchVersionManifest() {
             string cachePath = Path.Combine(launcherRoot, "cache", "version_manifest_v2.json");
 
-            // Check and use cached metadata if its recent enough
+            // Check and use cached metadata if it's recent enough
             if (File.Exists(cachePath)) {
                 TimeSpan age = DateTime.UtcNow - File.GetLastWriteTimeUtc(cachePath);
                 if (age.TotalHours < 1) {
@@ -57,7 +67,7 @@ namespace MinecraftModLauncher.ViewModels {
         }
 
         private async Task<JsonElement> fetchVersionMetadata(string versionId) {
-            // Check if theres catched metadata
+            // Check if there's catched metadata
             string cachePath = Path.Combine(launcherRoot, "cache", "versions", $"{versionId}.json");
 
             if (File.Exists(cachePath)) {
@@ -195,9 +205,14 @@ namespace MinecraftModLauncher.ViewModels {
             var startInfo = new ProcessStartInfo {
                 FileName = javaPath,
                 WorkingDirectory = gameDirPath,
-                UseShellExecute = false,
+                UseShellExecute = false, 
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
             };
-
+            
+            
+            
             // JVM arguments
             startInfo.ArgumentList.Add("-Xmx2G");
             startInfo.ArgumentList.Add("-Xms512M");
@@ -223,8 +238,22 @@ namespace MinecraftModLauncher.ViewModels {
             startInfo.ArgumentList.Add(Account?.AccessToken ?? "0");
             startInfo.ArgumentList.Add("--userType");
             startInfo.ArgumentList.Add(Account != null ? "msa" : "legacy");
-
-            Process.Start(startInfo);
+            
+            Process process = new Process{StartInfo = startInfo};
+            
+            process.OutputDataReceived += (sender, e) =>
+            {
+                if(!string.IsNullOrEmpty(e.Data))UpdateUiLogs(e.Data);
+            };
+            
+            process.ErrorDataReceived += (sender, e) => {
+                if (!string.IsNullOrEmpty(e.Data)) UpdateUiLogs($"[ERROR] {e.Data}");
+            };
+            
+            process.Start();
+            
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
         }
 
         // archived func
@@ -265,20 +294,35 @@ namespace MinecraftModLauncher.ViewModels {
             string librariesDir = Path.Combine(launcherRoot, "libraries");
             List<string> libraryPaths = await downloadLibraries(versionMeta, librariesDir);
 
+            Greeting = "Checking java runtime";
+            JavaRequirement requirement = _javaService.getRequiredJavaVersion(versionMeta);
+            string javaPath;
+            try
+            {
+                javaPath = await _javaService.ensureJavaRuntime(requirement, status => Greeting = status);
+            }
+            catch (Exception ex)
+            {
+                Greeting = $"Failed to download Java runtime: {ex.Message}";
+                return;
+            }
+
             Greeting = "Launching";
             string gameDir = Path.Combine(launcherRoot, "instances", "default", ".minecraft");
             string assetsDir = Path.Combine(launcherRoot, "assets");
             Directory.CreateDirectory(gameDir);
-
+            
+            
             launchGame(
-                // this assumes java is on PATH but we should have a path picker later
-                "java",
-                versionId,
-                versionMeta,
-                libraryPaths,
-                clientJarPath,
-                gameDir,
-                assetsDir);
+                    javaPath,
+                    versionId,
+                    versionMeta,
+                    libraryPaths,
+                    clientJarPath,
+                    gameDir,
+                    assetsDir);
+            
+            
 
             Greeting = "Launched game";
         }
@@ -295,6 +339,15 @@ namespace MinecraftModLauncher.ViewModels {
             } catch (Exception ex) {
                 Greeting = $"Sign-in failed: {ex.Message}";
             }
+        }
+
+        private void UpdateUiLogs(string message)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                Console.WriteLine(message);
+                GameLogs.Add(message);
+            });
         }
     }
 }
