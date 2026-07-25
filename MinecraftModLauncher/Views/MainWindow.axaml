@@ -21,6 +21,16 @@
                  HorizontalAlignment="Center"
                  VerticalAlignment="Center" />
 
+		<Button Content="Sign in with Microsoft"
+            Command="{Binding signInCommand}" />
+
+		<StackPanel Spacing="5" IsVisible="{Binding UserCode, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+			<TextBlock Text="Go to:" />
+			<TextBlock Text="{Binding VerificationUrl}" FontWeight="Bold" />
+			<TextBlock Text="Enter this code:" />
+			<TextBlock Text="{Binding UserCode}" FontSize="28" FontWeight="Bold" />
+		</StackPanel>
+
 		<Button Content="Launch Minecraft"
 				Command="{Binding launchMinecraftCommand}" />
         

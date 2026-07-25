@@ -1,11 +1,14 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Win32.SafeHandles;
+using MinecraftModLauncher.Models;
+using MinecraftModLauncher.Services;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-
 using System.Net.Http;
+using System.Security.Principal;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,6 +17,14 @@ namespace MinecraftModLauncher.ViewModels {
     public partial class MainViewModel : ViewModelBase {
         [ObservableProperty]
         private string _greeting = "Click the button below to get started!";
+        [ObservableProperty]
+        private MinecraftAccount? _account;
+
+        [ObservableProperty]
+        private string _userCode = "";
+
+        [ObservableProperty]
+        private string _verificationUrl = "";
 
         private string launcherRoot => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MinecraftModLauncher");
 
@@ -21,6 +32,7 @@ namespace MinecraftModLauncher.ViewModels {
             Timeout = TimeSpan.FromSeconds(60)
         };
         private static readonly SemaphoreSlim _downloadSemaphore = new(10);
+        private readonly MicrosoftAuthService _authService = new();
 
 
         private async Task<JsonElement> fetchVersionManifest() {
@@ -196,9 +208,7 @@ namespace MinecraftModLauncher.ViewModels {
 
             // Game arguments
             startInfo.ArgumentList.Add("--username");
-
-            // placeholder until authentication is added
-            startInfo.ArgumentList.Add("Player");
+            startInfo.ArgumentList.Add(Account?.Username ?? "Player");
             startInfo.ArgumentList.Add("--version");
             startInfo.ArgumentList.Add(versionId);
             startInfo.ArgumentList.Add("--gameDir");
@@ -208,15 +218,11 @@ namespace MinecraftModLauncher.ViewModels {
             startInfo.ArgumentList.Add("--assetIndex");
             startInfo.ArgumentList.Add(assetIndex);
             startInfo.ArgumentList.Add("--uuid");
-
-            // placeholder/fake uuid for offline
-            startInfo.ArgumentList.Add(Guid.NewGuid().ToString("N"));
+            startInfo.ArgumentList.Add(Account?.Uuid ?? Guid.NewGuid().ToString("N"));
             startInfo.ArgumentList.Add("--accessToken");
-
-            // placeholder for offline mode
-            startInfo.ArgumentList.Add("0");
+            startInfo.ArgumentList.Add(Account?.AccessToken ?? "0");
             startInfo.ArgumentList.Add("--userType");
-            startInfo.ArgumentList.Add("legacy");
+            startInfo.ArgumentList.Add(Account != null ? "msa" : "legacy");
 
             Process.Start(startInfo);
         }
@@ -275,6 +281,20 @@ namespace MinecraftModLauncher.ViewModels {
                 assetsDir);
 
             Greeting = "Launched game";
+        }
+
+        [RelayCommand]
+        private async Task signIn() {
+            try {
+                Account = await _authService.authenticateFullFlow(
+                    status => Greeting = status,
+                    (code, url) => {
+                        UserCode = code;
+                        VerificationUrl = url;
+                    });
+            } catch (Exception ex) {
+                Greeting = $"Sign-in failed: {ex.Message}";
+            }
         }
     }
 }

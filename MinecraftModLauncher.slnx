@@ -1,4 +1,3 @@
 <Solution>
-  <Folder Name="/MinecraftModLauncher.UI/" />
   <Project Path="MinecraftModLauncher/MinecraftModLauncher.csproj" />
 </Solution>
