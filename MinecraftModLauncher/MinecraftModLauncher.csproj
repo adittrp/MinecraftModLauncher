@@ -6,11 +6,25 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <Version>1.0.0</Version>
+    <LauncherGitHubUsername>sdemat</LauncherGitHubUsername>
+    <LauncherProjectName>MinecraftModLauncher</LauncherProjectName>
+    <LauncherContactUrl>https://github.com/adittrp/MinecraftModLauncher</LauncherContactUrl>
+  </PropertyGroup>
+  
   <ItemGroup>
-    <AvaloniaResource Include="Assets\**" />
+    <AssemblyMetadata Include="GitHubUsername" Value="$(LauncherGitHubUsername)" />
+    <AssemblyMetadata Include="ProjectName" Value="$(LauncherProjectName)" />
+    <AssemblyMetadata Include="ContactUrl" Value="$(LauncherContactUrl)" />
   </ItemGroup>
 
   <ItemGroup>
+    <AvaloniaResource Include="Assets/**" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="AsyncImageLoader.Avalonia" Version="3.8.0" />
     <PackageReference Include="Avalonia" Version="12.1.0" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.0" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.0" />

@@ -14,6 +14,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using MinecraftModLauncher.Models.Modrinth;
 
 namespace MinecraftModLauncher.ViewModels {
     public partial class MainViewModel : ViewModelBase {
@@ -24,6 +25,12 @@ namespace MinecraftModLauncher.ViewModels {
         
         [ObservableProperty]
         private MinecraftAccount? _account;
+        
+        [ObservableProperty]
+        private string _modSearchQuery = "";
+        
+        [ObservableProperty]
+        private ObservableCollection<ModrinthSearchHit> _modSearchResults = new();
 
         [ObservableProperty]
         private string _userCode = "";
@@ -38,12 +45,39 @@ namespace MinecraftModLauncher.ViewModels {
         };
         private static readonly SemaphoreSlim _downloadSemaphore = new(10);
         private readonly MicrosoftAuthService _authService = new();
+        private readonly ModrinthService _modrinthService = new();
+        
+        public ModrinthSearchViewModel ModrinthSearch { get; }
         private readonly JavaService _javaService;
         
         public MainViewModel() {
             _javaService = new JavaService(launcherRoot);
+
+            ModrinthSearch = new ModrinthSearchViewModel(
+                _modrinthService,
+                getGameVersion: () => "1.21.1", // replace with real selected variables
+                getLoader: () => "fabric", // replace with real selected variables
+                installHandlers: new()
+                {
+                    ["mod"] = InstallMod,
+                    ["modpack"] = InstallModpack
+                    // add resourcepacks and shaders here as well
+                });
         }
 
+        private async Task InstallMod(ModrinthSearchHit hit)
+        {
+            List<ModrinthVersion> versions = await _modrinthService.getProjectVersions(hit.ProjectId, gameVersion: "1.21.1", loader: "fabric");
+            if (versions.Count == 0) throw new Exception("No compatible versions found for this mod");
+
+            string modsDir = Path.Combine(launcherRoot, "instances", "default", ".minecraft", "mods");
+            await _modrinthService.downloadVersionFile(versions[0], modsDir);
+        }
+
+        private async Task InstallModpack(ModrinthSearchHit hit)
+        {
+            
+        }
 
         private async Task<JsonElement> fetchVersionManifest() {
             string cachePath = Path.Combine(launcherRoot, "cache", "version_manifest_v2.json");
@@ -255,26 +289,6 @@ namespace MinecraftModLauncher.ViewModels {
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
         }
-
-        // archived func
-        //[RelayCommand]
-        //private void createFileSystem(string instanceName) {
-        //    string path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-
-        //    string instanceGameDir = Path.Combine(launcherRoot, "instances", instanceName, ".minecraft");
-        //    string assetsDir = Path.Combine(launcherRoot, "assets");
-        //    string librariesDir = Path.Combine(launcherRoot, "libraries");
-            
-        //    string launcherConfig = Path.Combine(launcherRoot, "launcher_config.json");
-            
-        //    Directory.CreateDirectory(instanceGameDir);
-        //    Directory.CreateDirectory(assetsDir);
-        //    Directory.CreateDirectory(librariesDir);
-            
-        //    using FileStream fileStream = File.Create(launcherConfig);
-            
-        //    Console.WriteLine(launcherRoot);
-        //}
 
         [RelayCommand]
         private async Task launchMinecraft() {
