@@ -171,11 +171,12 @@ namespace MinecraftModLauncher.Services {
         // Exchange XSTS token for mc token
         private async Task<MinecraftTokenResponse> authenticateWithMinecraft(string xstsToken, string userHash) {
             string body = JsonSerializer.Serialize(new {
-                identityToken = $"XBL3.0 x={userHash};{xstsToken}"
+                identityToken = $"XBL3.0 x={userHash};{xstsToken}",
+                ensureLegacyEnabled = true
             });
 
             var request = new HttpRequestMessage(HttpMethod.Post,
-                "https://api.minecraftservices.com/authentication/loginWithXbox");
+                "https://api.minecraftservices.com/authentication/login_with_xbox");
 
             request.Content = new StringContent(body);
             request.Content.Headers.ContentType =
