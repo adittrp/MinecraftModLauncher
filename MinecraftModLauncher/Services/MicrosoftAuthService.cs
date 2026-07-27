@@ -243,6 +243,32 @@ namespace MinecraftModLauncher.Services {
             };
         }
 
+        public async Task<MinecraftAccount> authenticateWithRefreshToken(string refreshToken, Action<string> onStatusUpdate) {
+            onStatusUpdate("Refreshing Microsoft token...");
+            MicrosoftTokenResponse msToken = await refreshMicrosoftToken(refreshToken);
+
+            onStatusUpdate("Authenticating with Xbox Live...");
+            XboxTokenResponse xboxToken = await authenticateWithXboxLive(msToken.AccessToken);
+
+            onStatusUpdate("Authenticating with XSTS...");
+            XboxTokenResponse xstsToken = await authenticateWithXsts(xboxToken.Token);
+
+            onStatusUpdate("Authenticating with Minecraft...");
+            MinecraftTokenResponse mcToken = await authenticateWithMinecraft(
+                xstsToken.Token, xstsToken.UserHash);
+
+            onStatusUpdate("Fetching profile...");
+            MinecraftProfile profile = await fetchMinecraftProfile(mcToken.AccessToken);
+
+            return new MinecraftAccount {
+                Username = profile.Username,
+                Uuid = profile.Uuid,
+                AccessToken = mcToken.AccessToken,
+                RefreshToken = msToken.RefreshToken,
+                ExpiresAt = DateTime.UtcNow.AddSeconds(mcToken.ExpiresInSeconds),
+            };
+        }
+
         public async Task<MinecraftAccount> authenticateFullFlow(Action<string> onStatusUpdate, Action<string, string> onUserCodeReceived) {
             onStatusUpdate("Starting Microsoft sign-in...");
             DeviceCodeResponse deviceCode = await startDeviceCodeFlow();
@@ -251,7 +277,7 @@ namespace MinecraftModLauncher.Services {
 
             onStatusUpdate("Waiting for you to enter the code...");
             MicrosoftTokenResponse msToken = await pollForMicrosoftToken(deviceCode);
-            
+
             onStatusUpdate("Authenticating with Xbox Live...");
             XboxTokenResponse xboxToken;
             try {
@@ -259,7 +285,7 @@ namespace MinecraftModLauncher.Services {
             } catch (Exception ex) {
                 throw new Exception($"Xbox Live failed: {ex.Message}");
             }
-            
+
             onStatusUpdate("Authenticating with XSTS...");
             XboxTokenResponse xstsToken;
             try {
@@ -268,7 +294,7 @@ namespace MinecraftModLauncher.Services {
                 throw new Exception($"XSTS failed: {ex.Message}");
             }
 
-           
+
             Console.WriteLine(">>> Starting Minecraft auth");
             onStatusUpdate("Authenticating with Minecraft...");
             MinecraftTokenResponse mcToken;

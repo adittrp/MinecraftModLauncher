@@ -21,15 +21,16 @@ namespace MinecraftModLauncher.ViewModels {
     public partial class MainViewModel : ViewModelBase {
         [ObservableProperty]
         private string _greeting = "Click the button below to get started!";
-        
+
         public ObservableCollection<string> GameLogs { get; } = new();
-        
+
         [ObservableProperty]
         private MinecraftAccount? _account;
-        
+        private readonly AccountStore _accountStore;
+
         [ObservableProperty]
         private string _modSearchQuery = "";
-        
+
         [ObservableProperty]
         private ObservableCollection<ModrinthSearchHit> _modSearchResults = new();
 
@@ -52,12 +53,12 @@ namespace MinecraftModLauncher.ViewModels {
 
         public ObservableCollection<Instance> Instances { get; } = new();
         public ObservableCollection<InstalledMod> InstanceMods { get; } = new();
-        
+
         [ObservableProperty]
         private Instance? _selectedInstance;
 
         [ObservableProperty] private bool _isViewingInstance;
-        
+
         // Instance creation form
         [ObservableProperty] private string _newInstanceName = "";
         [ObservableProperty] private string _newInstanceDescription = "";
@@ -69,38 +70,60 @@ namespace MinecraftModLauncher.ViewModels {
 
         public ObservableCollection<string> AvailableGameVersions { get; } = new();
         public List<string> AvailableLoaders { get; } = new() { "fabric", "forge", "quilt", "neoforge" };
-        
+
         public ModrinthSearchViewModel ModrinthSearch { get; }
-        
+
         public MainViewModel() {
             _javaService = new JavaService(launcherRoot);
             _instanceService = new InstanceService(launcherRoot);
+            _accountStore = new AccountStore(launcherRoot);
             _ = LoadInstances();
             _ = LoadAvailableGameVersions();
+            _ = RestoreSession();
 
             ModrinthSearch = new ModrinthSearchViewModel(
                 _modrinthService,
                 getGameVersion: () => SelectedInstance?.GameVersion ?? "1.21.1", // replace with real selected variables
                 getLoader: () => SelectedInstance?.Loader ?? "fabric", // replace with real selected variables
-                installHandlers: new()
-                {
+                installHandlers: new() {
                     ["mod"] = InstallMod,
                     ["modpack"] = InstallModpack
                     // add resourcepacks and shaders here as well
                 });
         }
 
+        private async Task RestoreSession() {
+            MinecraftAccount? saved = await _accountStore.Load();
+            if (saved == null)
+                return;
+
+            if (!saved.IsExpired) {
+                Account = saved;
+                Greeting = $"Signed in as {saved.Username}";
+                return;
+            }
+
+            if (string.IsNullOrEmpty(saved.RefreshToken))
+                return;
+
+            try {
+                Account = await _authService.authenticateWithRefreshToken(
+                    saved.RefreshToken,
+                    status => Greeting = status);
+                await _accountStore.Save(Account);
+                Greeting = $"Signed in as {Account.Username}";
+            } catch {
+                Greeting = "Session expired. Please sign in again.";
+            }
+        }
+
         [RelayCommand]
-        private async Task LoadAvailableGameVersions()
-        {
-            try
-            {
+        private async Task LoadAvailableGameVersions() {
+            try {
                 JsonElement manifest = await fetchVersionManifest();
                 AvailableGameVersions.Clear();
-                foreach (JsonElement version in manifest.GetProperty("versions").EnumerateArray())
-                {
-                    if (version.GetProperty("type").GetString() == "release")
-                    {
+                foreach (JsonElement version in manifest.GetProperty("versions").EnumerateArray()) {
+                    if (version.GetProperty("type").GetString() == "release") {
                         AvailableGameVersions.Add(version.GetProperty("id").GetString()!);
                     }
                 }
@@ -109,8 +132,7 @@ namespace MinecraftModLauncher.ViewModels {
         }
 
         [RelayCommand]
-        private void BeginCreateInstance()
-        {
+        private void BeginCreateInstance() {
             NewInstanceName = "";
             NewInstanceDescription = "";
             NewInstanceIconUrl = null;
@@ -121,50 +143,44 @@ namespace MinecraftModLauncher.ViewModels {
         }
 
         [RelayCommand]
-        private void CancelCreateInstance()
-        {
+        private void CancelCreateInstance() {
             IsCreatingInstance = false;
         }
 
         [RelayCommand]
-        private async Task ConfirmCreateInstance()
-        {
-            if (string.IsNullOrWhiteSpace(NewInstanceName))
-            {
+        private async Task ConfirmCreateInstance() {
+            if (string.IsNullOrWhiteSpace(NewInstanceName)) {
                 CreateInstanceError = "Name is required";
                 return;
             }
 
-            if (Instances.Any(i => i.Name == NewInstanceName))
-            {
+            if (Instances.Any(i => i.Name == NewInstanceName)) {
                 CreateInstanceError = "Instance name already exists";
                 return;
             }
 
             Instance created = await _instanceService.createInstance(NewInstanceName, NewInstanceIconUrl,
                 NewInstanceGameVersion, NewInstanceLoader!, NewInstanceDescription);
-            
+
             Instances.Add(created);
             IsCreatingInstance = false;
-            
+
             SelectInstance(created);
         }
-        
+
         [RelayCommand]
-        private async Task LoadInstances()
-        {
+        private async Task LoadInstances() {
             Instances.Clear();
             foreach (var instance in await _instanceService.loadAllInstances())
                 Instances.Add(instance);
         }
 
         [RelayCommand]
-        private void SelectInstance(Instance? instance)
-        {
+        private void SelectInstance(Instance? instance) {
             if (instance is null) return;
-            
+
             SelectedInstance = instance;
-            
+
             InstanceMods.Clear();
             foreach (var mod in instance.Mods)
                 InstanceMods.Add(mod);
@@ -172,24 +188,21 @@ namespace MinecraftModLauncher.ViewModels {
         }
 
         [RelayCommand]
-        private void BackToSearch()
-        {
+        private void BackToSearch() {
             IsViewingInstance = false;
         }
 
-        private async Task InstallMod(ModrinthSearchHit hit)
-        {
-            if (SelectedInstance is not { } instance)
-            {
+        private async Task InstallMod(ModrinthSearchHit hit) {
+            if (SelectedInstance is not { } instance) {
                 Greeting = "Please select an instance first";
                 return;
             }
-            
+
             List<ModrinthVersion> versions = await _modrinthService.getProjectVersions(hit.ProjectId, gameVersion: instance.GameVersion, loader: instance.Loader);
             if (versions.Count == 0) throw new Exception("No compatible versions found for this mod");
 
             // change default to the selected instance
-            
+
             ModrinthVersion version = versions[0];
             string modsDir = _instanceService.getInstanceModsDir(instance.Name);
             await _modrinthService.downloadVersionFile(version, modsDir);
@@ -199,21 +212,20 @@ namespace MinecraftModLauncher.ViewModels {
                 version.VersionNumber,
                 version.Files.Find(f => f.Primary)?.Filename ?? version.Files[0].Filename,
                 hit.ProjectType, DateTimeOffset.UtcNow);
-            
+
             Instance updated = await _instanceService.addMod(instance, installedMod);
-            
+
             SelectedInstance = updated;
             int idx = Instances.IndexOf(instance);
             if (idx >= 0) Instances[idx] = updated;
-            
+
             InstanceMods.Clear();
             foreach (var mod in updated.Mods)
                 InstanceMods.Add(mod);
         }
 
-        private async Task InstallModpack(ModrinthSearchHit hit)
-        {
-            
+        private async Task InstallModpack(ModrinthSearchHit hit) {
+
         }
 
         private async Task<JsonElement> fetchVersionManifest() {
@@ -376,14 +388,14 @@ namespace MinecraftModLauncher.ViewModels {
             var startInfo = new ProcessStartInfo {
                 FileName = javaPath,
                 WorkingDirectory = gameDirPath,
-                UseShellExecute = false, 
+                UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 CreateNoWindow = true,
             };
-            
-            
-            
+
+
+
             // JVM arguments
             startInfo.ArgumentList.Add("-Xmx2G");
             startInfo.ArgumentList.Add("-Xms512M");
@@ -409,20 +421,19 @@ namespace MinecraftModLauncher.ViewModels {
             startInfo.ArgumentList.Add(Account?.AccessToken ?? "0");
             startInfo.ArgumentList.Add("--userType");
             startInfo.ArgumentList.Add(Account != null ? "msa" : "legacy");
-            
-            Process process = new Process{StartInfo = startInfo};
-            
-            process.OutputDataReceived += (sender, e) =>
-            {
-                if(!string.IsNullOrEmpty(e.Data))UpdateUiLogs(e.Data);
+
+            Process process = new Process { StartInfo = startInfo };
+
+            process.OutputDataReceived += (sender, e) => {
+                if (!string.IsNullOrEmpty(e.Data)) UpdateUiLogs(e.Data);
             };
-            
+
             process.ErrorDataReceived += (sender, e) => {
                 if (!string.IsNullOrEmpty(e.Data)) UpdateUiLogs($"[ERROR] {e.Data}");
             };
-            
+
             process.Start();
-            
+
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
         }
@@ -448,12 +459,9 @@ namespace MinecraftModLauncher.ViewModels {
             Greeting = "Checking java runtime";
             JavaRequirement requirement = _javaService.getRequiredJavaVersion(versionMeta);
             string javaPath;
-            try
-            {
+            try {
                 javaPath = await _javaService.ensureJavaRuntime(requirement, status => Greeting = status);
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 Greeting = $"Failed to download Java runtime: {ex.Message}";
                 return;
             }
@@ -462,8 +470,8 @@ namespace MinecraftModLauncher.ViewModels {
             string gameDir = Path.Combine(launcherRoot, "instances", "default", ".minecraft");
             string assetsDir = Path.Combine(launcherRoot, "assets");
             Directory.CreateDirectory(gameDir);
-            
-            
+
+
             launchGame(
                     javaPath,
                     versionId,
@@ -472,8 +480,8 @@ namespace MinecraftModLauncher.ViewModels {
                     clientJarPath,
                     gameDir,
                     assetsDir);
-            
-            
+
+
 
             Greeting = "Launched game";
         }
@@ -487,15 +495,14 @@ namespace MinecraftModLauncher.ViewModels {
                         UserCode = code;
                         VerificationUrl = url;
                     });
+                await _accountStore.Save(Account);
             } catch (Exception ex) {
                 Greeting = $"Sign-in failed: {ex.Message}";
             }
         }
 
-        private void UpdateUiLogs(string message)
-        {
-            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-            {
+        private void UpdateUiLogs(string message) {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => {
                 Console.WriteLine(message);
                 GameLogs.Add(message);
             });
