@@ -7,6 +7,7 @@
         xmlns:asyncImageLoader="using:AsyncImageLoader"
         xmlns:modrinthModels="clr-namespace:MinecraftModLauncher.Services"
         xmlns:modrinth="clr-namespace:MinecraftModLauncher.Models.Modrinth"
+        xmlns:models="clr-namespace:MinecraftModLauncher.Models"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         Width="1200"
         Height="800"
@@ -55,8 +56,27 @@
 
 			<Button Content="Launch Minecraft"
 					Command="{Binding launchMinecraftCommand}" />
+		    <StackPanel Height="30" Orientation="Horizontal" Margin="10">
+			    <Button Content="+ New Instance" Command="{Binding BeginCreateInstanceCommand}"/>
+			    <ComboBox ItemsSource="{Binding Instances}"
+			              SelectedItem="{Binding SelectedInstance}"
+			              DisplayMemberBinding="{Binding Name}"/>
+			    <Button Content="View Mods" Command="{Binding SelectInstanceCommand}" CommandParameter="{Binding SelectedInstance}"/>
+		    </StackPanel>
+		    <StackPanel IsVisible="{Binding IsCreatingInstance}" Spacing="6">
+			    <TextBox Text="{Binding NewInstanceName}" Watermark="Instance name"/>
+			    <TextBox Text="{Binding NewInstanceDescription}" Watermark="Description (optional)"/>
+			    <ComboBox ItemsSource="{Binding AvailableGameVersions}" SelectedItem="{Binding NewInstanceGameVersion}"/>
+			    <ComboBox ItemsSource="{Binding AvailableLoaders}" SelectedItem="{Binding NewInstanceLoader}"/>
+			    <TextBlock Text="{Binding CreateInstanceError}" Foreground="Red"/>
+			    <StackPanel Orientation="Horizontal" Spacing="6">
+				    <Button Content="Create" Command="{Binding ConfirmCreateInstanceCommand}"/>
+				    <Button Content="Cancel" Command="{Binding CancelCreateInstanceCommand}"/>
+			    </StackPanel>
+		    </StackPanel>
 	        
-		    <StackPanel Margin="{StaticResource DefaultMargin}" Spacing="5">
+		    <StackPanel Margin="{StaticResource DefaultMargin}" Spacing="5" IsVisible="{Binding !IsViewingInstance}">
+			    
 			    <Grid ColumnDefinitions="Auto,*,Auto">
 				    <ComboBox Grid.Column="0"
 				              ItemsSource="{Binding ModrinthSearch.ProjectTypes}"
@@ -72,9 +92,7 @@
 				            Command="{Binding ModrinthSearch.SearchCommand}"
 				            Margin="5,0,0,0"/>
 			    </Grid>
-
 			    <TextBlock Text="{Binding ModrinthSearch.StatusMessage}" Opacity="0.7" FontSize="12"/>
-
 			    <ListBox ItemsSource="{Binding ModrinthSearch.Results}" Height="600">
 				    <ListBox.ItemTemplate>
 					    <DataTemplate x:DataType="modrinth:ModrinthSearchHit">
@@ -92,6 +110,17 @@
 								            CommandParameter="{Binding}"/>
 							    </Grid>
 						    </Border>
+					    </DataTemplate>
+				    </ListBox.ItemTemplate>
+			    </ListBox>
+		    </StackPanel>
+		    
+		    <StackPanel IsVisible="{Binding IsViewingInstance}">
+			    <Button Content="Back to Search" Command="{Binding BackToSearchCommand}"/>
+			    <ListBox ItemsSource="{Binding InstanceMods}">
+				    <ListBox.ItemTemplate>
+					    <DataTemplate x:DataType="models:InstalledMod">
+						    <TextBlock Text="{Binding Title}"/>
 					    </DataTemplate>
 				    </ListBox.ItemTemplate>
 			    </ListBox>

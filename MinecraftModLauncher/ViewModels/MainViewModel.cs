@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Security.Principal;
 using System.Text.Json;
@@ -46,17 +47,41 @@ namespace MinecraftModLauncher.ViewModels {
         private static readonly SemaphoreSlim _downloadSemaphore = new(10);
         private readonly MicrosoftAuthService _authService = new();
         private readonly ModrinthService _modrinthService = new();
+        private readonly InstanceService _instanceService;
+        private readonly JavaService _javaService;
+
+        public ObservableCollection<Instance> Instances { get; } = new();
+        public ObservableCollection<InstalledMod> InstanceMods { get; } = new();
+        
+        [ObservableProperty]
+        private Instance? _selectedInstance;
+
+        [ObservableProperty] private bool _isViewingInstance;
+        
+        // Instance creation form
+        [ObservableProperty] private string _newInstanceName = "";
+        [ObservableProperty] private string _newInstanceDescription = "";
+        [ObservableProperty] private string _newInstanceIconUrl;
+        [ObservableProperty] private string _newInstanceGameVersion;
+        [ObservableProperty] private string _newInstanceLoader;
+        [ObservableProperty] private bool _isCreatingInstance;
+        [ObservableProperty] private string _createInstanceError = "";
+
+        public ObservableCollection<string> AvailableGameVersions { get; } = new();
+        public List<string> AvailableLoaders { get; } = new() { "fabric", "forge", "quilt", "neoforge" };
         
         public ModrinthSearchViewModel ModrinthSearch { get; }
-        private readonly JavaService _javaService;
         
         public MainViewModel() {
             _javaService = new JavaService(launcherRoot);
+            _instanceService = new InstanceService(launcherRoot);
+            _ = LoadInstances();
+            _ = LoadAvailableGameVersions();
 
             ModrinthSearch = new ModrinthSearchViewModel(
                 _modrinthService,
-                getGameVersion: () => "1.21.1", // replace with real selected variables
-                getLoader: () => "fabric", // replace with real selected variables
+                getGameVersion: () => SelectedInstance?.GameVersion ?? "1.21.1", // replace with real selected variables
+                getLoader: () => SelectedInstance?.Loader ?? "fabric", // replace with real selected variables
                 installHandlers: new()
                 {
                     ["mod"] = InstallMod,
@@ -65,13 +90,125 @@ namespace MinecraftModLauncher.ViewModels {
                 });
         }
 
+        [RelayCommand]
+        private async Task LoadAvailableGameVersions()
+        {
+            try
+            {
+                JsonElement manifest = await fetchVersionManifest();
+                AvailableGameVersions.Clear();
+                foreach (JsonElement version in manifest.GetProperty("versions").EnumerateArray())
+                {
+                    if (version.GetProperty("type").GetString() == "release")
+                    {
+                        AvailableGameVersions.Add(version.GetProperty("id").GetString()!);
+                    }
+                }
+            } catch { // dont care
+            }
+        }
+
+        [RelayCommand]
+        private void BeginCreateInstance()
+        {
+            NewInstanceName = "";
+            NewInstanceDescription = "";
+            NewInstanceIconUrl = null;
+            NewInstanceGameVersion = AvailableGameVersions.Count > 0 ? AvailableGameVersions[0] : null;
+            NewInstanceLoader = AvailableLoaders[0];
+            CreateInstanceError = "";
+            IsCreatingInstance = true;
+        }
+
+        [RelayCommand]
+        private void CancelCreateInstance()
+        {
+            IsCreatingInstance = false;
+        }
+
+        [RelayCommand]
+        private async Task ConfirmCreateInstance()
+        {
+            if (string.IsNullOrWhiteSpace(NewInstanceName))
+            {
+                CreateInstanceError = "Name is required";
+                return;
+            }
+
+            if (Instances.Any(i => i.Name == NewInstanceName))
+            {
+                CreateInstanceError = "Instance name already exists";
+                return;
+            }
+
+            Instance created = await _instanceService.createInstance(NewInstanceName, NewInstanceIconUrl,
+                NewInstanceGameVersion, NewInstanceLoader!, NewInstanceDescription);
+            
+            Instances.Add(created);
+            IsCreatingInstance = false;
+            
+            SelectInstance(created);
+        }
+        
+        [RelayCommand]
+        private async Task LoadInstances()
+        {
+            Instances.Clear();
+            foreach (var instance in await _instanceService.loadAllInstances())
+                Instances.Add(instance);
+        }
+
+        [RelayCommand]
+        private void SelectInstance(Instance? instance)
+        {
+            if (instance is null) return;
+            
+            SelectedInstance = instance;
+            
+            InstanceMods.Clear();
+            foreach (var mod in instance.Mods)
+                InstanceMods.Add(mod);
+            IsViewingInstance = true;
+        }
+
+        [RelayCommand]
+        private void BackToSearch()
+        {
+            IsViewingInstance = false;
+        }
+
         private async Task InstallMod(ModrinthSearchHit hit)
         {
-            List<ModrinthVersion> versions = await _modrinthService.getProjectVersions(hit.ProjectId, gameVersion: "1.21.1", loader: "fabric");
+            if (SelectedInstance is not { } instance)
+            {
+                Greeting = "Please select an instance first";
+                return;
+            }
+            
+            List<ModrinthVersion> versions = await _modrinthService.getProjectVersions(hit.ProjectId, gameVersion: instance.GameVersion, loader: instance.Loader);
             if (versions.Count == 0) throw new Exception("No compatible versions found for this mod");
 
-            string modsDir = Path.Combine(launcherRoot, "instances", "default", ".minecraft", "mods");
-            await _modrinthService.downloadVersionFile(versions[0], modsDir);
+            // change default to the selected instance
+            
+            ModrinthVersion version = versions[0];
+            string modsDir = _instanceService.getInstanceModsDir(instance.Name);
+            await _modrinthService.downloadVersionFile(version, modsDir);
+
+            var installedMod = new InstalledMod(
+                hit.ProjectId, version.Id, hit.Title, hit.IconUrl,
+                version.VersionNumber,
+                version.Files.Find(f => f.Primary)?.Filename ?? version.Files[0].Filename,
+                hit.ProjectType, DateTimeOffset.UtcNow);
+            
+            Instance updated = await _instanceService.addMod(instance, installedMod);
+            
+            SelectedInstance = updated;
+            int idx = Instances.IndexOf(instance);
+            if (idx >= 0) Instances[idx] = updated;
+            
+            InstanceMods.Clear();
+            foreach (var mod in updated.Mods)
+                InstanceMods.Add(mod);
         }
 
         private async Task InstallModpack(ModrinthSearchHit hit)
