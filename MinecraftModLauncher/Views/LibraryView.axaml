@@ -1,0 +1,121 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MinecraftModLauncher.ViewModels"
+             xmlns:modrinth="using:MinecraftModLauncher.Models.Modrinth"
+             xmlns:models="using:MinecraftModLauncher.Models"
+             xmlns:asyncImageLoader="using:AsyncImageLoader"
+             x:Class="MinecraftModLauncher.Views.LibraryView"
+             x:DataType="vm:LibraryViewModel">
+
+	<DockPanel Margin="{StaticResource PageMargin}">
+
+		<!-- Header -->
+		<StackPanel DockPanel.Dock="Top" Spacing="16" Margin="0,0,0,16">
+			<TextBlock Text="Library" FontSize="28" FontWeight="Bold"
+                       Foreground="{StaticResource TextPrimaryBrush}" />
+
+			<!-- Search bar -->
+			<Grid ColumnDefinitions="Auto,*,Auto">
+				<ComboBox Grid.Column="0"
+                          ItemsSource="{Binding Main.ModrinthSearch.ProjectTypes}"
+                          SelectedItem="{Binding Main.ModrinthSearch.SelectedProjectType}"
+                          Margin="0,0,8,0" />
+				<TextBox Grid.Column="1"
+                         Text="{Binding Main.ModrinthSearch.SearchQuery}"
+                         Watermark="Search Modrinth..." />
+				<Button Grid.Column="2" Content="Search"
+                        Command="{Binding Main.ModrinthSearch.SearchCommand}"
+                        Margin="8,0,0,0" />
+			</Grid>
+
+			<TextBlock Text="{Binding Main.ModrinthSearch.StatusMessage}"
+                       Foreground="{StaticResource TextMutedBrush}" FontSize="12" />
+		</StackPanel>
+
+		<!-- Instance mods view -->
+		<StackPanel DockPanel.Dock="Top"
+                    IsVisible="{Binding Main.IsViewingInstance}">
+			<Button Content="← Back to Search"
+                    Command="{Binding Main.BackToSearchCommand}"
+                    Background="Transparent"
+                    Foreground="{StaticResource AccentBlueBrush}"
+                    BorderThickness="0" Padding="0,8"
+                    Cursor="Hand" />
+
+			<TextBlock Text="INSTALLED MODS" FontSize="11" FontWeight="SemiBold"
+                       Foreground="{StaticResource TextMutedBrush}"
+                       LetterSpacing="1.5" Margin="0,8,0,12" />
+
+			<ListBox ItemsSource="{Binding Main.InstanceMods}"
+                     Background="Transparent">
+				<ListBox.ItemTemplate>
+					<DataTemplate x:DataType="models:InstalledMod">
+						<Border Padding="12,10" Margin="0,2"
+                                Background="{StaticResource Surface0Brush}"
+                                CornerRadius="8">
+							<Grid ColumnDefinitions="*,Auto">
+								<StackPanel Grid.Column="0" Spacing="3">
+									<TextBlock Text="{Binding Title}" FontWeight="SemiBold"
+                                               FontSize="14"
+                                               Foreground="{StaticResource TextPrimaryBrush}" />
+									<StackPanel Orientation="Horizontal" Spacing="12">
+										<TextBlock Text="{Binding VersionNumber}" FontSize="12"
+                                                   Foreground="{StaticResource TextMutedBrush}" />
+										<TextBlock Text="{Binding ProjectType}" FontSize="12"
+                                                   Foreground="{StaticResource TextMutedBrush}" />
+									</StackPanel>
+								</StackPanel>
+								<TextBlock Grid.Column="1" Text="{Binding Filename}"
+                                           FontSize="11"
+                                           Foreground="{StaticResource TextMutedBrush}"
+                                           VerticalAlignment="Center" />
+							</Grid>
+						</Border>
+					</DataTemplate>
+				</ListBox.ItemTemplate>
+			</ListBox>
+		</StackPanel>
+
+		<!-- Search results -->
+		<ListBox ItemsSource="{Binding Main.ModrinthSearch.Results}"
+                 IsVisible="{Binding !Main.IsViewingInstance}"
+                 Background="Transparent">
+			<ListBox.ItemTemplate>
+				<DataTemplate x:DataType="modrinth:ModrinthSearchHit">
+					<Border Padding="12" Margin="0,3"
+                            Background="{StaticResource Surface0Brush}"
+                            CornerRadius="8">
+						<Grid ColumnDefinitions="48,*,Auto" ColumnSpacing="14">
+							<asyncImageLoader:AdvancedImage
+                                Grid.Column="0" Width="48" Height="48"
+                                Source="{Binding IconUrl}" />
+							<StackPanel Grid.Column="1" Spacing="4">
+								<TextBlock Text="{Binding Title}" FontWeight="Bold"
+                                           FontSize="14"
+                                           Foreground="{StaticResource TextPrimaryBrush}" />
+								<TextBlock Text="{Binding Description}" TextWrapping="Wrap"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           FontSize="12"
+                                           MaxLines="2" />
+								<StackPanel Orientation="Horizontal" Spacing="12">
+									<TextBlock Text="{Binding Downloads,
+                                                   StringFormat='{}{0:N0} downloads'}"
+                                               Foreground="{StaticResource TextMutedBrush}"
+                                               FontSize="11" />
+									<TextBlock Text="{Binding Author}"
+                                               Foreground="{StaticResource TextMutedBrush}"
+                                               FontSize="11" />
+								</StackPanel>
+							</StackPanel>
+							<Button Grid.Column="2" Content="Install"
+                                    VerticalAlignment="Center"
+                                    Command="{Binding $parent[ListBox].((vm:LibraryViewModel)DataContext).Main.ModrinthSearch.InstallCommand}"
+                                    CommandParameter="{Binding}" />
+						</Grid>
+					</Border>
+				</DataTemplate>
+			</ListBox.ItemTemplate>
+		</ListBox>
+
+	</DockPanel>
+</UserControl>

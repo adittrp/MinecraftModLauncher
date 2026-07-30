@@ -1,0 +1,109 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MinecraftModLauncher.ViewModels"
+             x:Class="MinecraftModLauncher.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+
+	<ScrollViewer>
+		<StackPanel Margin="{StaticResource PageMargin}" Spacing="24" MaxWidth="650">
+
+			<TextBlock Text="Settings" FontSize="28" FontWeight="Bold"
+                       Foreground="{StaticResource TextPrimaryBrush}" />
+
+			<!-- Java settings -->
+			<StackPanel Spacing="12">
+				<TextBlock Text="JAVA" FontSize="11" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextMutedBrush}"
+                           LetterSpacing="1.5" />
+
+				<Border Background="{StaticResource Surface0Brush}"
+                        CornerRadius="{StaticResource CardRadius}"
+                        Padding="{StaticResource CardPadding}">
+					<StackPanel Spacing="20">
+						<StackPanel Spacing="6">
+							<TextBlock Text="Memory Allocation" FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" />
+							<TextBlock Text="Currently hardcoded to 2 GB. Configurable memory settings coming soon."
+                                       FontSize="13"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap" />
+						</StackPanel>
+
+						<Border Height="1" Background="{StaticResource Surface1Brush}" />
+
+						<StackPanel Spacing="6">
+							<TextBlock Text="JVM Arguments" FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" />
+							<TextBlock Text="Custom JVM arguments are not configurable yet."
+                                       FontSize="13"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap" />
+						</StackPanel>
+
+						<Border Height="1" Background="{StaticResource Surface1Brush}" />
+
+						<StackPanel Spacing="6">
+							<TextBlock Text="Java Runtime" FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" />
+							<TextBlock Text="Java runtimes are automatically downloaded and managed per Minecraft version."
+                                       FontSize="13"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap" />
+						</StackPanel>
+					</StackPanel>
+				</Border>
+			</StackPanel>
+
+			<!-- Appearance -->
+			<StackPanel Spacing="12">
+				<TextBlock Text="APPEARANCE" FontSize="11" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextMutedBrush}"
+                           LetterSpacing="1.5" />
+
+				<Border Background="{StaticResource Surface0Brush}"
+                        CornerRadius="{StaticResource CardRadius}"
+                        Padding="{StaticResource CardPadding}">
+					<StackPanel Spacing="6">
+						<TextBlock Text="Theme" FontSize="13"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" />
+						<TextBlock Text="Dark (Catppuccin Mocha)"
+                                   FontSize="13"
+                                   Foreground="{StaticResource TextSecondaryBrush}" />
+					</StackPanel>
+				</Border>
+			</StackPanel>
+
+			<!-- About -->
+			<StackPanel Spacing="12">
+				<TextBlock Text="ABOUT" FontSize="11" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextMutedBrush}"
+                           LetterSpacing="1.5" />
+
+				<Border Background="{StaticResource Surface0Brush}"
+                        CornerRadius="{StaticResource CardRadius}"
+                        Padding="{StaticResource CardPadding}">
+					<StackPanel Spacing="10">
+						<TextBlock Text="MinecraftModLauncher" FontSize="16"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" />
+						<TextBlock Text="v1.0.0" FontSize="13"
+                                   Foreground="{StaticResource TextSecondaryBrush}" />
+						<Border Height="1" Background="{StaticResource Surface1Brush}"
+                                Margin="0,4" />
+						<TextBlock Text="Built with .NET 8 and Avalonia UI."
+                                   FontSize="13"
+                                   Foreground="{StaticResource TextSecondaryBrush}" />
+						<TextBlock Text="Catppuccin Mocha color palette."
+                                   FontSize="13"
+                                   Foreground="{StaticResource TextMutedBrush}" />
+					</StackPanel>
+				</Border>
+			</StackPanel>
+
+		</StackPanel>
+	</ScrollViewer>
+</UserControl>

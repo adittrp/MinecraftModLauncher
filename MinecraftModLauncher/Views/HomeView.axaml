@@ -1,0 +1,148 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MinecraftModLauncher.ViewModels"
+             xmlns:models="using:MinecraftModLauncher.Models"
+             x:Class="MinecraftModLauncher.Views.HomeView"
+             x:DataType="vm:HomeViewModel">
+
+	<ScrollViewer>
+		<StackPanel Margin="{StaticResource PageMargin}" Spacing="20">
+
+			<!-- Account card -->
+			<Border Background="{StaticResource Surface0Brush}"
+                    CornerRadius="{StaticResource CardRadius}"
+                    Padding="{StaticResource CardPadding}">
+				<StackPanel Spacing="10">
+					<TextBlock Text="ACCOUNT" FontSize="11" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextMutedBrush}"
+                               LetterSpacing="1.5" />
+
+					<TextBlock Text="{Binding Main.Greeting}" FontSize="16"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               TextWrapping="Wrap" />
+
+					<Button Content="Sign in with Microsoft"
+                            Command="{Binding Main.SignInCommand}"
+                            IsVisible="{Binding !Main.Account, FallbackValue=True}" />
+
+					<!-- Device code display -->
+					<StackPanel Spacing="5"
+                                IsVisible="{Binding Main.UserCode,
+                                    Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+						<TextBlock Text="Go to:" Foreground="{StaticResource TextSecondaryBrush}" />
+						<TextBlock Text="{Binding Main.VerificationUrl}"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource AccentBlueBrush}" />
+						<TextBlock Text="Enter this code:"
+                                   Foreground="{StaticResource TextSecondaryBrush}" />
+						<TextBlock Text="{Binding Main.UserCode}"
+                                   FontSize="28" FontWeight="Bold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" />
+					</StackPanel>
+				</StackPanel>
+			</Border>
+
+			<!-- Instance selection + launch -->
+			<Border Background="{StaticResource Surface0Brush}"
+                    CornerRadius="{StaticResource CardRadius}"
+                    Padding="{StaticResource CardPadding}">
+				<StackPanel Spacing="14">
+					<TextBlock Text="LAUNCH" FontSize="11" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextMutedBrush}"
+                               LetterSpacing="1.5" />
+
+					<StackPanel Orientation="Horizontal" Spacing="8">
+						<ComboBox ItemsSource="{Binding Main.Instances}"
+                                  SelectedItem="{Binding Main.SelectedInstance}"
+                                  DisplayMemberBinding="{Binding Name}"
+                                  MinWidth="200" />
+						<Button Content="+ New Instance"
+                                Command="{Binding Main.BeginCreateInstanceCommand}" />
+					</StackPanel>
+
+					<!-- Instance creation form -->
+					<StackPanel IsVisible="{Binding Main.IsCreatingInstance}" Spacing="8">
+						<Border Height="1" Background="{StaticResource Surface1Brush}"
+                                Margin="0,4" />
+						<TextBox Text="{Binding Main.NewInstanceName}"
+                                 Watermark="Instance name" />
+						<TextBox Text="{Binding Main.NewInstanceDescription}"
+                                 Watermark="Description (optional)" />
+						<StackPanel Orientation="Horizontal" Spacing="8">
+							<ComboBox ItemsSource="{Binding Main.AvailableGameVersions}"
+                                      SelectedItem="{Binding Main.NewInstanceGameVersion}"
+                                      MinWidth="150" />
+							<ComboBox ItemsSource="{Binding Main.AvailableLoaders}"
+                                      SelectedItem="{Binding Main.NewInstanceLoader}"
+                                      MinWidth="130" />
+						</StackPanel>
+						<TextBlock Text="{Binding Main.CreateInstanceError}"
+                                   Foreground="{StaticResource AccentRedBrush}"
+                                   FontSize="13" />
+						<StackPanel Orientation="Horizontal" Spacing="8">
+							<Button Content="Create"
+                                    Command="{Binding Main.ConfirmCreateInstanceCommand}" />
+							<Button Content="Cancel"
+                                    Command="{Binding Main.CancelCreateInstanceCommand}" />
+						</StackPanel>
+					</StackPanel>
+
+					<!-- Launch button -->
+					<Button Command="{Binding Main.LaunchMinecraftCommand}"
+                            Background="{StaticResource AccentGreenBrush}"
+                            Foreground="{StaticResource CrustBrush}"
+                            FontWeight="SemiBold" FontSize="15"
+                            Padding="24,12"
+                            CornerRadius="{StaticResource CardRadius}"
+                            HorizontalAlignment="Left"
+                            BorderThickness="0"
+                            Cursor="Hand">
+						<StackPanel Orientation="Horizontal" Spacing="8">
+							<TextBlock Text="▶" VerticalAlignment="Center" />
+							<TextBlock Text="Launch Minecraft" VerticalAlignment="Center" />
+						</StackPanel>
+					</Button>
+				</StackPanel>
+			</Border>
+
+			<!-- Selected instance info -->
+			<Border Background="{StaticResource Surface0Brush}"
+                    CornerRadius="{StaticResource CardRadius}"
+                    Padding="{StaticResource CardPadding}"
+                    IsVisible="{Binding Main.SelectedInstance, Converter={x:Static ObjectConverters.IsNotNull}}">
+				<StackPanel Spacing="8">
+					<TextBlock Text="SELECTED INSTANCE" FontSize="11" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextMutedBrush}"
+                               LetterSpacing="1.5" />
+					<TextBlock Text="{Binding Main.SelectedInstance.Name}"
+                               FontSize="18" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}" />
+					<StackPanel Orientation="Horizontal" Spacing="16">
+						<TextBlock Foreground="{StaticResource TextSecondaryBrush}" FontSize="13">
+							<TextBlock.Text>
+								<MultiBinding StringFormat="Minecraft {0}">
+									<Binding Path="Main.SelectedInstance.GameVersion" />
+								</MultiBinding>
+							</TextBlock.Text>
+						</TextBlock>
+						<TextBlock Foreground="{StaticResource TextSecondaryBrush}" FontSize="13">
+							<TextBlock.Text>
+								<MultiBinding StringFormat="{}{0}">
+									<Binding Path="Main.SelectedInstance.Loader" />
+								</MultiBinding>
+							</TextBlock.Text>
+						</TextBlock>
+						<TextBlock Foreground="{StaticResource TextMutedBrush}" FontSize="13">
+							<TextBlock.Text>
+								<MultiBinding StringFormat="{}{0} mod(s)">
+									<Binding Path="Main.SelectedInstance.Mods.Count" />
+								</MultiBinding>
+							</TextBlock.Text>
+						</TextBlock>
+					</StackPanel>
+				</StackPanel>
+			</Border>
+
+		</StackPanel>
+	</ScrollViewer>
+</UserControl>

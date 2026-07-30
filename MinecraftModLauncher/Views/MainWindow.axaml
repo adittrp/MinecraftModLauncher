@@ -3,148 +3,133 @@
         xmlns:vm="using:MinecraftModLauncher.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:internal="clr-namespace:Avalonia.Dialogs.Internal;assembly=Avalonia.Dialogs"
-        xmlns:asyncImageLoader="using:AsyncImageLoader"
-        xmlns:modrinthModels="clr-namespace:MinecraftModLauncher.Services"
-        xmlns:modrinth="clr-namespace:MinecraftModLauncher.Models.Modrinth"
-        xmlns:models="clr-namespace:MinecraftModLauncher.Models"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-        Width="1200"
-        Height="800"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
+        Width="1200" Height="800"
+        MinWidth="900" MinHeight="600"
         x:Class="MinecraftModLauncher.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Icon="/Assets/avalonia-logo.ico"
         Title="MinecraftModLauncher"
-        x:Name="RootWindow">
+        Background="{StaticResource CrustBrush}">
 
-	
-	<!-- Variables to use throughout the styling (trying to avoid "magic numbers"...) -->
-	<Window.Resources>
-		<Thickness x:Key="DefaultMargin">20.0</Thickness>
-		<CornerRadius x:Key="DefaultCornerRadius">10.0</CornerRadius>
-		<Color x:Key="PrimaryBackground">#2b2d42</Color>
-		<Color x:Key="SecondaryBackground">#392B42</Color>
-		<Color x:Key="Foreground">#4e2c70</Color>
-		<Color x:Key="Accent">#702b9e</Color>
-	</Window.Resources>
-	
-    <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
-        <vm:MainViewModel />
-    </Design.DataContext>
-	
-	<!-- Parent stack panel -->
-    <StackPanel Orientation="Horizontal" Spacing="10" Background="{StaticResource PrimaryBackground}">
-	    <StackPanel Width="100">
-		    
-	    </StackPanel>
-	    <StackPanel Margin="{StaticResource DefaultMargin}" Width='600' Background="{StaticResource PrimaryBackground}">
-		    <TextBox Text="{Binding Greeting}"
-		             HorizontalAlignment="Center"
-		             VerticalAlignment="Center" />
+	<Design.DataContext>
+		<vm:MainViewModel />
+	</Design.DataContext>
 
-			<Button Content="Sign in with Microsoft"
-	            Command="{Binding signInCommand}" />
+	<Window.Styles>
+		<!-- Sidebar nav button -->
+		<Style Selector="Button.nav-btn">
+			<Setter Property="Background" Value="Transparent" />
+			<Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+			<Setter Property="HorizontalAlignment" Value="Stretch" />
+			<Setter Property="HorizontalContentAlignment" Value="Left" />
+			<Setter Property="Padding" Value="18,14" />
+			<Setter Property="CornerRadius" Value="{StaticResource CardRadius}" />
+			<Setter Property="BorderThickness" Value="0" />
+			<Setter Property="FontSize" Value="14" />
+			<Setter Property="Cursor" Value="Hand" />
+		</Style>
+		<Style Selector="Button.nav-btn:pointerover /template/ ContentPresenter">
+			<Setter Property="Background" Value="{StaticResource Surface0Brush}" />
+			<Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+		</Style>
+		<Style Selector="Button.nav-btn.active">
+			<Setter Property="Background" Value="{StaticResource Surface0Brush}" />
+			<Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+			<Setter Property="FontWeight" Value="SemiBold" />
+		</Style>
+		<Style Selector="Button.nav-btn.active /template/ ContentPresenter">
+			<Setter Property="Background" Value="{StaticResource Surface0Brush}" />
+			<Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+		</Style>
+	</Window.Styles>
 
-			<StackPanel Spacing="5" IsVisible="{Binding UserCode, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-				<TextBlock Text="Go to:" />
-				<TextBlock Text="{Binding VerificationUrl}" FontWeight="Bold" />
-				<TextBlock Text="Enter this code:" />
-				<TextBlock Text="{Binding UserCode}" FontSize="28" FontWeight="Bold" />
-			</StackPanel>
+	<Grid ColumnDefinitions="220,*">
 
-			<Button Content="Launch Minecraft"
-					Command="{Binding launchMinecraftCommand}" />
-		    <StackPanel Height="30" Orientation="Horizontal" Margin="10">
-			    <Button Content="+ New Instance" Command="{Binding BeginCreateInstanceCommand}"/>
-			    <ComboBox ItemsSource="{Binding Instances}"
-			              SelectedItem="{Binding SelectedInstance}"
-			              DisplayMemberBinding="{Binding Name}"/>
-			    <Button Content="View Mods" Command="{Binding SelectInstanceCommand}" CommandParameter="{Binding SelectedInstance}"/>
-		    </StackPanel>
-		    <StackPanel IsVisible="{Binding IsCreatingInstance}" Spacing="6">
-			    <TextBox Text="{Binding NewInstanceName}" Watermark="Instance name"/>
-			    <TextBox Text="{Binding NewInstanceDescription}" Watermark="Description (optional)"/>
-			    <ComboBox ItemsSource="{Binding AvailableGameVersions}" SelectedItem="{Binding NewInstanceGameVersion}"/>
-			    <ComboBox ItemsSource="{Binding AvailableLoaders}" SelectedItem="{Binding NewInstanceLoader}"/>
-			    <TextBlock Text="{Binding CreateInstanceError}" Foreground="Red"/>
-			    <StackPanel Orientation="Horizontal" Spacing="6">
-				    <Button Content="Create" Command="{Binding ConfirmCreateInstanceCommand}"/>
-				    <Button Content="Cancel" Command="{Binding CancelCreateInstanceCommand}"/>
-			    </StackPanel>
-		    </StackPanel>
-	        
-		    <StackPanel Margin="{StaticResource DefaultMargin}" Spacing="5" IsVisible="{Binding !IsViewingInstance}">
-			    
-			    <Grid ColumnDefinitions="Auto,*,Auto">
-				    <ComboBox Grid.Column="0"
-				              ItemsSource="{Binding ModrinthSearch.ProjectTypes}"
-				              SelectedItem="{Binding ModrinthSearch.SelectedProjectType}"
-				              Margin="0,0,5,0"/>
+		<!-- Side bar -->
+		<Border Grid.Column="0" Background="{StaticResource MantleBrush}" Padding="12">
+			<DockPanel>
 
-				    <TextBox Grid.Column="1"
-				             Text="{Binding ModrinthSearch.SearchQuery}"
-				             PlaceholderText="Type to search..."/>
+				<!-- Branding -->
+				<StackPanel DockPanel.Dock="Top" Margin="8,12,8,28">
+					<TextBlock Text="MC Launcher" FontSize="20" FontWeight="Bold"
+                               Foreground="{StaticResource TextPrimaryBrush}" />
+					<TextBlock Text="v1.0.0" FontSize="11"
+                               Foreground="{StaticResource TextMutedBrush}"
+                               Margin="0,2,0,0" />
+				</StackPanel>
 
-				    <Button Grid.Column="2"
-				            Content="Search"
-				            Command="{Binding ModrinthSearch.SearchCommand}"
-				            Margin="5,0,0,0"/>
-			    </Grid>
-			    <TextBlock Text="{Binding ModrinthSearch.StatusMessage}" Opacity="0.7" FontSize="12"/>
-			    <ListBox ItemsSource="{Binding ModrinthSearch.Results}" Height="600">
-				    <ListBox.ItemTemplate>
-					    <DataTemplate x:DataType="modrinth:ModrinthSearchHit">
-						    <Border Padding="8" Margin="0,4">
-							    <Grid ColumnDefinitions="48,*,Auto" ColumnSpacing="10">
-								    <asyncImageLoader:AdvancedImage Grid.Column="0" Width="48" Height="48"
-								                                    Source="{Binding IconUrl}"/>
-								    <StackPanel Grid.Column="1" Spacing="2">
-									    <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="14"/>
-									    <TextBlock Text="{Binding Description}" TextWrapping="Wrap" Opacity="0.8" FontSize="12"/>
-									    <TextBlock Text="{Binding Downloads, StringFormat='{}{0:N0} downloads'}" Opacity="0.6" FontSize="11"/>
-								    </StackPanel>
-								    <Button Grid.Column="2" Content="Install" VerticalAlignment="Center"
-								            Command="{Binding $parent[ListBox].((vm:MainViewModel)DataContext).ModrinthSearch.InstallCommand}"
-								            CommandParameter="{Binding}"/>
-							    </Grid>
-						    </Border>
-					    </DataTemplate>
-				    </ListBox.ItemTemplate>
-			    </ListBox>
-		    </StackPanel>
-		    
-		    <StackPanel IsVisible="{Binding IsViewingInstance}">
-			    <Button Content="Back to Search" Command="{Binding BackToSearchCommand}"/>
-			    <ListBox ItemsSource="{Binding InstanceMods}">
-				    <ListBox.ItemTemplate>
-					    <DataTemplate x:DataType="models:InstalledMod">
-						    <TextBlock Text="{Binding Title}"/>
-					    </DataTemplate>
-				    </ListBox.ItemTemplate>
-			    </ListBox>
-		    </StackPanel>
-	    </StackPanel>
-	    
-	    <StackPanel Margin="{StaticResource DefaultMargin}" Width="400">
-		    <TextBlock Margin="0 5" HorizontalAlignment="Center">Game logs:</TextBlock>
-		    <Border Background="{StaticResource Foreground}" CornerRadius="{StaticResource DefaultCornerRadius}" Padding="6" ClipToBounds="True">
-			    <ListBox x:Name="GameLogs" Height="700" ItemsSource="{Binding GameLogs}" Background="{StaticResource SecondaryBackground}" CornerRadius="{StaticResource DefaultCornerRadius}">
-				    <ListBox.Styles>
-					    <Style Selector="ListBoxItem">
-						    <Setter Property="Margin" Value="0,2" />
-						    <Setter Property="Padding" Value="4,2" />
-					    </Style>
-				    </ListBox.Styles>
-				    <ListBox.ItemTemplate>
-					    <DataTemplate>
-						    <TextBlock Text="{Binding}" 
-						               TextWrapping="Wrap" />
-					    </DataTemplate>
-					</ListBox.ItemTemplate>
-			    </ListBox>
-		    </Border>
-	    </StackPanel>
-    </StackPanel>
+				<!-- Section label -->
+				<TextBlock DockPanel.Dock="Top" Text="NAVIGATION"
+                           FontSize="10" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextMutedBrush}"
+                           LetterSpacing="1.5" Margin="8,0,0,10" />
+
+				<!-- Bottom account status -->
+				<StackPanel DockPanel.Dock="Bottom" Margin="8,0,8,4">
+					<Border Height="1" Background="{StaticResource Surface0Brush}"
+                            Margin="0,0,0,12" />
+					<TextBlock Text="{Binding Account.Username,
+                                   FallbackValue='Not signed in',
+                                   TargetNullValue='Not signed in'}"
+                               FontSize="12"
+                               Foreground="{StaticResource TextMutedBrush}" />
+				</StackPanel>
+
+				<!-- Nav buttons -->
+				<StackPanel Spacing="4">
+					<Button Classes="nav-btn"
+                            Classes.active="{Binding IsHome}"
+                            Command="{Binding NavigateCommand}"
+                            CommandParameter="Home">
+						<StackPanel Orientation="Horizontal" Spacing="10">
+							<TextBlock Text="🏠" FontSize="15"
+                                       VerticalAlignment="Center" />
+							<TextBlock Text="Home" VerticalAlignment="Center" />
+						</StackPanel>
+					</Button>
+
+					<Button Classes="nav-btn"
+                            Classes.active="{Binding IsLibrary}"
+                            Command="{Binding NavigateCommand}"
+                            CommandParameter="Library">
+						<StackPanel Orientation="Horizontal" Spacing="10">
+							<TextBlock Text="📦" FontSize="15"
+                                       VerticalAlignment="Center" />
+							<TextBlock Text="Library" VerticalAlignment="Center" />
+						</StackPanel>
+					</Button>
+
+					<Button Classes="nav-btn"
+                            Classes.active="{Binding IsConsole}"
+                            Command="{Binding NavigateCommand}"
+                            CommandParameter="Console">
+						<StackPanel Orientation="Horizontal" Spacing="10">
+							<TextBlock Text="🖥️" FontSize="15"
+                                       VerticalAlignment="Center" />
+							<TextBlock Text="Console" VerticalAlignment="Center" />
+						</StackPanel>
+					</Button>
+
+					<Button Classes="nav-btn"
+                            Classes.active="{Binding IsSettings}"
+                            Command="{Binding NavigateCommand}"
+                            CommandParameter="Settings">
+						<StackPanel Orientation="Horizontal" Spacing="10">
+							<TextBlock Text="⚙️" FontSize="15"
+                                       VerticalAlignment="Center" />
+							<TextBlock Text="Settings" VerticalAlignment="Center" />
+						</StackPanel>
+					</Button>
+				</StackPanel>
+
+			</DockPanel>
+		</Border>
+
+		<!-- Main Content -->
+		<Border Grid.Column="1" Background="{StaticResource BaseBrush}">
+			<ContentControl Content="{Binding CurrentPage}" />
+		</Border>
+
+	</Grid>
 </Window>

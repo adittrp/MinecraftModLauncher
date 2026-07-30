@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MinecraftModLauncher.ViewModels"
+             x:Class="MinecraftModLauncher.Views.ConsoleView"
+             x:DataType="vm:ConsoleViewModel">
+
+	<DockPanel Margin="{StaticResource PageMargin}">
+
+		<!-- Header -->
+		<StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,16">
+			<TextBlock Text="Console" FontSize="28" FontWeight="Bold"
+                       Foreground="{StaticResource TextPrimaryBrush}" />
+			<TextBlock FontSize="13"
+                       Foreground="{StaticResource TextMutedBrush}">
+				<TextBlock.Text>
+					<MultiBinding StringFormat="{}{0} log entries">
+						<Binding Path="GameLogs.Count" />
+					</MultiBinding>
+				</TextBlock.Text>
+			</TextBlock>
+		</StackPanel>
+
+		<!-- Log output -->
+		<Border Background="{StaticResource MantleBrush}"
+                CornerRadius="{StaticResource CardRadius}"
+                Padding="4"
+                ClipToBounds="True">
+			<ListBox ItemsSource="{Binding GameLogs}"
+                     Background="Transparent">
+				<ListBox.Styles>
+					<Style Selector="ListBoxItem">
+						<Setter Property="Margin" Value="0,1" />
+						<Setter Property="Padding" Value="10,4" />
+						<Setter Property="MinHeight" Value="0" />
+					</Style>
+					<Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+						<Setter Property="Background" Value="{StaticResource Surface0Brush}" />
+					</Style>
+				</ListBox.Styles>
+				<ListBox.ItemTemplate>
+					<DataTemplate>
+						<TextBlock Text="{Binding}" TextWrapping="Wrap"
+                                   Foreground="{StaticResource AccentGreenBrush}"
+                                   FontFamily="Cascadia Code, Consolas, Courier New, monospace"
+                                   FontSize="12" />
+					</DataTemplate>
+				</ListBox.ItemTemplate>
+			</ListBox>
+		</Border>
+
+	</DockPanel>
+</UserControl>

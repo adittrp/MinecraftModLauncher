@@ -9,6 +9,51 @@
         <local:ViewLocator />
     </Application.DataTemplates>
 
+	<Application.Resources>
+		<!-- Base surfaces (darkest to lightest) -->
+		<Color x:Key="Crust">#11111B</Color>
+		<Color x:Key="Mantle">#181825</Color>
+		<Color x:Key="Base">#1E1E2E</Color>
+		<Color x:Key="Surface0">#313244</Color>
+		<Color x:Key="Surface1">#45475A</Color>
+		<Color x:Key="Surface2">#585B70</Color>
+
+		<!-- Text hierarchy -->
+		<Color x:Key="TextPrimary">#CDD6F4</Color>
+		<Color x:Key="TextSecondary">#A6ADC8</Color>
+		<Color x:Key="TextMuted">#6C7086</Color>
+
+		<!-- Accents -->
+		<Color x:Key="AccentGreen">#A6E3A1</Color>
+		<Color x:Key="AccentBlue">#89B4FA</Color>
+		<Color x:Key="AccentMauve">#CBA6F7</Color>
+		<Color x:Key="AccentRed">#F38BA8</Color>
+		<Color x:Key="AccentYellow">#F9E2AF</Color>
+		<Color x:Key="AccentPeach">#FAB387</Color>
+
+		<!-- Brush versions (for Background, Foreground, BorderBrush) -->
+		<SolidColorBrush x:Key="CrustBrush" Color="{StaticResource Crust}" />
+		<SolidColorBrush x:Key="MantleBrush" Color="{StaticResource Mantle}" />
+		<SolidColorBrush x:Key="BaseBrush" Color="{StaticResource Base}" />
+		<SolidColorBrush x:Key="Surface0Brush" Color="{StaticResource Surface0}" />
+		<SolidColorBrush x:Key="Surface1Brush" Color="{StaticResource Surface1}" />
+		<SolidColorBrush x:Key="Surface2Brush" Color="{StaticResource Surface2}" />
+
+		<SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimary}" />
+		<SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondary}" />
+		<SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource TextMuted}" />
+
+		<SolidColorBrush x:Key="AccentGreenBrush" Color="{StaticResource AccentGreen}" />
+		<SolidColorBrush x:Key="AccentBlueBrush" Color="{StaticResource AccentBlue}" />
+		<SolidColorBrush x:Key="AccentMauveBrush" Color="{StaticResource AccentMauve}" />
+		<SolidColorBrush x:Key="AccentRedBrush" Color="{StaticResource AccentRed}" />
+
+		<!-- Shared sizing -->
+		<CornerRadius x:Key="CardRadius">10</CornerRadius>
+		<Thickness x:Key="PageMargin">30</Thickness>
+		<Thickness x:Key="CardPadding">20</Thickness>
+	</Application.Resources>
+
     <Application.Styles>
         <FluentTheme />
     </Application.Styles>

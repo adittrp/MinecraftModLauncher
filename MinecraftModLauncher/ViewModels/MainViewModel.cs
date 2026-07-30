@@ -21,8 +21,21 @@ namespace MinecraftModLauncher.ViewModels {
     public partial class MainViewModel : ViewModelBase {
         [ObservableProperty]
         private string _greeting = "Click the button below to get started!";
+        
+        [ObservableProperty]
+        private ViewModelBase _currentPage;
 
-        public ObservableCollection<string> GameLogs { get; } = new();
+        public ConsoleViewModel ConsolePage { get; }
+        public HomeViewModel HomePage { get; }
+        public LibraryViewModel LibraryPage { get; }
+        public SettingsViewModel SettingsPage { get; }
+
+        [ObservableProperty]
+        private string _currentPageTag = "Home";
+        public bool IsHome => CurrentPageTag == "Home";
+        public bool IsLibrary => CurrentPageTag == "Library";
+        public bool IsConsole => CurrentPageTag == "Console";
+        public bool IsSettings => CurrentPageTag == "Settings";
 
         [ObservableProperty]
         private MinecraftAccount? _account;
@@ -74,6 +87,11 @@ namespace MinecraftModLauncher.ViewModels {
         public ModrinthSearchViewModel ModrinthSearch { get; }
 
         public MainViewModel() {
+            ConsolePage = new ConsoleViewModel(this);
+            HomePage = new HomeViewModel(this);
+            LibraryPage = new LibraryViewModel(this);
+            SettingsPage = new SettingsViewModel();
+
             _javaService = new JavaService(launcherRoot);
             _instanceService = new InstanceService(launcherRoot);
             _accountStore = new AccountStore(launcherRoot);
@@ -90,6 +108,31 @@ namespace MinecraftModLauncher.ViewModels {
                     ["modpack"] = InstallModpack
                     // add resourcepacks and shaders here as well
                 });
+
+            _currentPage = new HomeViewModel(this);
+        }
+
+        partial void OnCurrentPageTagChanged(string value) {
+            OnPropertyChanged(nameof(IsHome));
+            OnPropertyChanged(nameof(IsLibrary));
+            OnPropertyChanged(nameof(IsConsole));
+            OnPropertyChanged(nameof(IsSettings));
+        }
+
+        [RelayCommand]
+        private void Navigate(string destination) {
+            if (CurrentPageTag == destination)
+                return;
+
+            CurrentPage = destination switch {
+                "Home" => HomePage,
+                "Library" => LibraryPage,
+                "Console" => ConsolePage,
+                "Settings" => SettingsPage,
+                _ => HomePage
+            };
+
+            CurrentPageTag = destination;
         }
 
         private async Task RestoreSession() {
@@ -112,15 +155,15 @@ namespace MinecraftModLauncher.ViewModels {
                     status => Greeting = status);
                 await _accountStore.Save(Account);
                 Greeting = $"Signed in as {Account.Username}";
-            } catch {
-                Greeting = "Session expired. Please sign in again.";
+            } catch (Exception e) {
+                Greeting = $"Refresh failed: {e.Message}";
             }
         }
 
         [RelayCommand]
         private async Task LoadAvailableGameVersions() {
             try {
-                JsonElement manifest = await fetchVersionManifest();
+                JsonElement manifest = await FetchVersionManifest();
                 AvailableGameVersions.Clear();
                 foreach (JsonElement version in manifest.GetProperty("versions").EnumerateArray()) {
                     if (version.GetProperty("type").GetString() == "release") {
@@ -228,7 +271,7 @@ namespace MinecraftModLauncher.ViewModels {
 
         }
 
-        private async Task<JsonElement> fetchVersionManifest() {
+        private async Task<JsonElement> FetchVersionManifest() {
             string cachePath = Path.Combine(launcherRoot, "cache", "version_manifest_v2.json");
 
             // Check and use cached metadata if it's recent enough
@@ -249,7 +292,7 @@ namespace MinecraftModLauncher.ViewModels {
             return JsonDocument.Parse(json).RootElement;
         }
 
-        private async Task<JsonElement> fetchVersionMetadata(string versionId) {
+        private async Task<JsonElement> FetchVersionMetadata(string versionId) {
             // Check if there's catched metadata
             string cachePath = Path.Combine(launcherRoot, "cache", "versions", $"{versionId}.json");
 
@@ -258,7 +301,7 @@ namespace MinecraftModLauncher.ViewModels {
                 return JsonDocument.Parse(cached).RootElement;
             }
 
-            JsonElement manifest = await fetchVersionManifest();
+            JsonElement manifest = await FetchVersionManifest();
             JsonElement versions = manifest.GetProperty("versions");
 
             foreach (JsonElement version in versions.EnumerateArray()) {
@@ -276,7 +319,7 @@ namespace MinecraftModLauncher.ViewModels {
             throw new Exception($"Version {versionId} not found in manifest");
         }
 
-        private async Task downloadFile(string url, string destPath) {
+        private async Task DownloadFile(string url, string destPath) {
             if (File.Exists(destPath)) return;
 
             await _downloadSemaphore.WaitAsync();
@@ -297,7 +340,7 @@ namespace MinecraftModLauncher.ViewModels {
             }
         }
 
-        private async Task downloadClientJar(JsonElement versionMeta, string versionsDir, string versionId) {
+        private async Task DownloadClientJar(JsonElement versionMeta, string versionsDir, string versionId) {
             string url = versionMeta
                 .GetProperty("downloads")
                 .GetProperty("client")
@@ -305,16 +348,16 @@ namespace MinecraftModLauncher.ViewModels {
                 .GetString()!;
 
             string destPath = Path.Combine(versionsDir, versionId, $"{versionId}.jar");
-            await downloadFile(url, destPath);
+            await DownloadFile(url, destPath);
         }
 
-        private async Task<List<string>> downloadLibraries(JsonElement versionMeta, string librariesDir) {
+        private async Task<List<string>> DownloadLibraries(JsonElement versionMeta, string librariesDir) {
             var classpathEntries = new List<string>();
             var downloadTasks = new List<Task>();
             JsonElement libraries = versionMeta.GetProperty("libraries");
 
             foreach (JsonElement lib in libraries.EnumerateArray()) {
-                if (!shouldIncludeLibrary(lib))
+                if (!ShouldIncludeLibrary(lib))
                     continue;
 
                 JsonElement downloads = lib.GetProperty("downloads");
@@ -326,7 +369,7 @@ namespace MinecraftModLauncher.ViewModels {
                         relativePath.Replace('/', Path.DirectorySeparatorChar));
 
                     classpathEntries.Add(fullPath);
-                    downloadTasks.Add(downloadFile(url, fullPath));
+                    downloadTasks.Add(DownloadFile(url, fullPath));
                 }
             }
 
@@ -334,7 +377,7 @@ namespace MinecraftModLauncher.ViewModels {
             return classpathEntries;
         }
 
-        private bool shouldIncludeLibrary(JsonElement lib) {
+        private bool ShouldIncludeLibrary(JsonElement lib) {
             if (!lib.TryGetProperty("rules", out JsonElement rules))
                 return true;
 
@@ -345,7 +388,7 @@ namespace MinecraftModLauncher.ViewModels {
 
                 if (rule.TryGetProperty("os", out JsonElement os)) {
                     string osName = os.GetProperty("name").GetString()!;
-                    string currentOS = getCurrentOsName();
+                    string currentOS = GetCurrentOsName();
 
                     if (osName == currentOS)
                         allowed = action == "allow";
@@ -357,14 +400,14 @@ namespace MinecraftModLauncher.ViewModels {
             return allowed;
         }
 
-        private string getCurrentOsName() {
+        private string GetCurrentOsName() {
             if (OperatingSystem.IsWindows()) return "windows";
             if (OperatingSystem.IsMacOS()) return "osx";
             return "linux";
         }
 
 
-        private void launchGame(
+        private void LaunchGame(
             string javaPath,
             string versionId,
             JsonElement versionMeta,
@@ -425,11 +468,11 @@ namespace MinecraftModLauncher.ViewModels {
             Process process = new Process { StartInfo = startInfo };
 
             process.OutputDataReceived += (sender, e) => {
-                if (!string.IsNullOrEmpty(e.Data)) UpdateUiLogs(e.Data);
+                if (!string.IsNullOrEmpty(e.Data)) ConsolePage.AddLog(e.Data);
             };
 
             process.ErrorDataReceived += (sender, e) => {
-                if (!string.IsNullOrEmpty(e.Data)) UpdateUiLogs($"[ERROR] {e.Data}");
+                if (!string.IsNullOrEmpty(e.Data)) ConsolePage.AddLog($"[ERROR] {e.Data}");
             };
 
             process.Start();
@@ -439,22 +482,22 @@ namespace MinecraftModLauncher.ViewModels {
         }
 
         [RelayCommand]
-        private async Task launchMinecraft() {
+        private async Task LaunchMinecraft() {
             string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             string launcherRoot = Path.Combine(appData, "MinecraftModLauncher");
             string versionId = "1.21.1";
 
             Greeting = "Fetching version metadata";
-            JsonElement versionMeta = await fetchVersionMetadata(versionId);
+            JsonElement versionMeta = await FetchVersionMetadata(versionId);
 
             Greeting = "Downloading client";
             string versionsDir = Path.Combine(launcherRoot, "versions");
             string clientJarPath = Path.Combine(versionsDir, versionId, $"{versionId}.jar");
-            await downloadClientJar(versionMeta, versionsDir, versionId);
+            await DownloadClientJar(versionMeta, versionsDir, versionId);
 
             Greeting = "Downloading libraries";
             string librariesDir = Path.Combine(launcherRoot, "libraries");
-            List<string> libraryPaths = await downloadLibraries(versionMeta, librariesDir);
+            List<string> libraryPaths = await DownloadLibraries(versionMeta, librariesDir);
 
             Greeting = "Checking java runtime";
             JavaRequirement requirement = _javaService.getRequiredJavaVersion(versionMeta);
@@ -472,7 +515,7 @@ namespace MinecraftModLauncher.ViewModels {
             Directory.CreateDirectory(gameDir);
 
 
-            launchGame(
+            LaunchGame(
                     javaPath,
                     versionId,
                     versionMeta,
@@ -487,7 +530,7 @@ namespace MinecraftModLauncher.ViewModels {
         }
 
         [RelayCommand]
-        private async Task signIn() {
+        private async Task SignIn() {
             try {
                 Account = await _authService.authenticateFullFlow(
                     status => Greeting = status,
@@ -499,13 +542,6 @@ namespace MinecraftModLauncher.ViewModels {
             } catch (Exception ex) {
                 Greeting = $"Sign-in failed: {ex.Message}";
             }
-        }
-
-        private void UpdateUiLogs(string message) {
-            Avalonia.Threading.Dispatcher.UIThread.Post(() => {
-                Console.WriteLine(message);
-                GameLogs.Add(message);
-            });
         }
     }
 }
