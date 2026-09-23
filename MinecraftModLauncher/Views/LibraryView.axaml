@@ -17,10 +17,10 @@
                            Foreground="{StaticResource TextPrimaryBrush}"
                            VerticalAlignment="Center" />
 
-				<Button Grid.Column="1" VerticalAlignment="Center">
+				<Button x:Name="TargetInstanceButton" Grid.Column="1" VerticalAlignment="Center">
 					<Button.Flyout>
 						<Flyout Placement="BottomEdgeAlignedRight">
-							<StackPanel Spacing="4" MinWidth="200">
+							<StackPanel Classes="flyout-content" Spacing="4" MinWidth="200">
 								<TextBlock Text="INSTALL TO" FontSize="10" FontWeight="SemiBold"
                                            Foreground="{StaticResource TextMutedBrush}" LetterSpacing="1" />
 								<ItemsControl ItemsSource="{Binding Main.Instances}">
@@ -67,10 +67,10 @@
 				<!-- Sort/filter bar -->
 				<Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto" Margin="20,12">
 
-					<Button Grid.Column="0" Content="{Binding Main.ModrinthSearch.SelectedProjectType, StringFormat='Type: {0} ▾'}">
+					<Button x:Name="TypeButton" Grid.Column="0" Content="{Binding Main.ModrinthSearch.SelectedProjectType, StringFormat='Type: {0} ▾'}">
 						<Button.Flyout>
 							<Flyout Placement="BottomEdgeAlignedLeft">
-								<StackPanel Spacing="4" MinWidth="160">
+								<StackPanel Classes="flyout-content" Spacing="4" MinWidth="160">
 									<TextBlock Text="PROJECT TYPE" FontSize="10" FontWeight="SemiBold"
                                                Foreground="{StaticResource TextMutedBrush}" LetterSpacing="1" />
 									<ItemsControl ItemsSource="{Binding Main.ModrinthSearch.ProjectTypes}">
@@ -88,10 +88,10 @@
 						</Button.Flyout>
 					</Button>
 
-					<Button Grid.Column="1" Content="{Binding Main.ModrinthSearch.SelectedLoader, StringFormat='Loader: {0} ▾', FallbackValue='Loader: Any ▾', TargetNullValue='Loader: Any ▾'}">
+					<Button x:Name="LoaderButton" Grid.Column="1" Content="{Binding Main.ModrinthSearch.SelectedLoader, StringFormat='Loader: {0} ▾', FallbackValue='Loader: Any ▾', TargetNullValue='Loader: Any ▾'}">
 						<Button.Flyout>
 							<Flyout Placement="BottomEdgeAlignedLeft">
-								<StackPanel Spacing="4" MinWidth="160">
+								<StackPanel Classes="flyout-content" Spacing="4" MinWidth="160">
 									<TextBlock Text="LOADER" FontSize="10" FontWeight="SemiBold"
                                                Foreground="{StaticResource TextMutedBrush}" LetterSpacing="1" />
 									<Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
@@ -113,10 +113,10 @@
 						</Button.Flyout>
 					</Button>
 
-					<Button Grid.Column="2" Content="Category ▾">
+					<Button x:Name="LibraryCategoryButton" Grid.Column="2" Content="Category ▾">
 						<Button.Flyout>
 							<Flyout Placement="BottomEdgeAlignedLeft">
-								<StackPanel Spacing="6" MinWidth="200">
+								<StackPanel Classes="flyout-content" Spacing="6" MinWidth="200">
 									<TextBlock Text="FILTER BY CATEGORY" FontSize="10" FontWeight="SemiBold"
                                                Foreground="{StaticResource TextMutedBrush}" LetterSpacing="1" />
 									<ItemsControl ItemsSource="{Binding Main.ModrinthSearch.CategoryFilterOptions}">
@@ -134,10 +134,10 @@
 						</Button.Flyout>
 					</Button>
 
-					<Button Grid.Column="3" Content="Sort ▾">
+					<Button x:Name="SortButton" Grid.Column="3" Content="Sort ▾">
 						<Button.Flyout>
 							<Flyout Placement="BottomEdgeAlignedLeft">
-								<StackPanel Spacing="4" MinWidth="150">
+								<StackPanel Classes="flyout-content" Spacing="4" MinWidth="150">
 									<TextBlock Text="SORT BY" FontSize="10" FontWeight="SemiBold"
                                                Foreground="{StaticResource TextMutedBrush}" LetterSpacing="1" />
 									<Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Content="Relevance"
@@ -153,11 +153,6 @@
 						</Button.Flyout>
 					</Button>
 
-					<Button Grid.Column="5" Content="← Back to Search"
-                            Command="{Binding Main.BackToSearchCommand}"
-                            IsVisible="{Binding Main.IsViewingInstance}"
-                            Margin="0,0,10,0" />
-
 					<TextBlock Grid.Column="6" Text="{Binding Main.ModrinthSearch.StatusMessage}"
                                Foreground="{StaticResource TextMutedBrush}" FontSize="12"
                                VerticalAlignment="Center" />
@@ -172,7 +167,6 @@
 					<Panel>
 
 						<!-- Search results -->
-						<Panel IsVisible="{Binding !Main.IsViewingInstance}">
 						<ListBox Classes="card-gallery"
                                  ItemsSource="{Binding Main.ModrinthSearch.Results}">
 							<ListBox.ItemsPanel>
@@ -221,42 +215,6 @@
                                    Foreground="{StaticResource TextMutedBrush}"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"
                                    IsVisible="{Binding Main.ModrinthSearch.Results.Count, Converter={x:Static converters:IsZeroConverter.Instance}}" />
-						</Panel>
-
-						<!-- Installed mods for the selected instance -->
-						<ListBox Classes="card-gallery"
-                                 ItemsSource="{Binding Main.InstanceMods}"
-                                 IsVisible="{Binding Main.IsViewingInstance}">
-							<ListBox.ItemsPanel>
-								<ItemsPanelTemplate>
-									<WrapPanel />
-								</ItemsPanelTemplate>
-							</ListBox.ItemsPanel>
-							<ListBox.ItemTemplate>
-								<DataTemplate x:DataType="models:InstalledMod">
-									<StackPanel Width="200" Spacing="10" HorizontalAlignment="Center">
-										<asyncImageLoader:AdvancedImage
-                                            Source="{Binding IconUrl}"
-                                            Width="64" Height="64"
-                                            HorizontalAlignment="Center" />
-
-										<TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="15"
-                                                   Foreground="{StaticResource TextPrimaryBrush}"
-                                                   HorizontalAlignment="Center" TextAlignment="Center"
-                                                   TextTrimming="CharacterEllipsis" />
-
-										<StackPanel HorizontalAlignment="Center" Spacing="4">
-											<Border Classes="chip" HorizontalAlignment="Center">
-												<TextBlock Text="{Binding VersionNumber, StringFormat='Version: {0}'}" />
-											</Border>
-											<Border Classes="chip" HorizontalAlignment="Center">
-												<TextBlock Text="{Binding ProjectType}" />
-											</Border>
-										</StackPanel>
-									</StackPanel>
-								</DataTemplate>
-							</ListBox.ItemTemplate>
-						</ListBox>
 					</Panel>
 				</Border>
 			</Grid>

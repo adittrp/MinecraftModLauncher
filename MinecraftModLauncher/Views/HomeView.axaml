@@ -3,6 +3,7 @@
              xmlns:vm="using:MinecraftModLauncher.ViewModels"
              xmlns:models="using:MinecraftModLauncher.Models"
              xmlns:converters="using:MinecraftModLauncher.Converters"
+             xmlns:asyncImageLoader="using:AsyncImageLoader"
              x:Class="MinecraftModLauncher.Views.HomeView"
              x:DataType="vm:HomeViewModel">
 
@@ -42,7 +43,8 @@
 			</Border>
 
 			<!-- Instances section: one connected box, fills remaining height down to the bottom -->
-			<Border Grid.Row="1" Classes="card" Padding="0">
+			<Border Grid.Row="1" Classes="card" Padding="0"
+                    IsVisible="{Binding !Main.IsViewingInstance}">
 				<Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
 
 					<!-- Top bar: create + launch -->
@@ -70,10 +72,10 @@
 					<!-- Sort/filter bar -->
 					<StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Margin="20,12">
 
-						<Button Content="Version ▾">
+						<Button x:Name="VersionButton" Content="Version ▾">
 							<Button.Flyout>
 								<Flyout Placement="BottomEdgeAlignedLeft">
-									<StackPanel Spacing="6" MinWidth="180">
+									<StackPanel Classes="flyout-content" Spacing="6" MinWidth="180">
 										<TextBlock Text="FILTER BY VERSION" FontSize="10" FontWeight="SemiBold"
                                                    Foreground="{StaticResource TextMutedBrush}" LetterSpacing="1" />
 										<ItemsControl ItemsSource="{Binding Main.VersionFilterOptions}">
@@ -91,10 +93,10 @@
 							</Button.Flyout>
 						</Button>
 
-						<Button Content="Loader ▾">
+						<Button x:Name="LoaderButton" Content="Loader ▾">
 							<Button.Flyout>
 								<Flyout Placement="BottomEdgeAlignedLeft">
-									<StackPanel Spacing="6" MinWidth="180">
+									<StackPanel Classes="flyout-content" Spacing="6" MinWidth="180">
 										<TextBlock Text="FILTER BY LOADER" FontSize="10" FontWeight="SemiBold"
                                                    Foreground="{StaticResource TextMutedBrush}" LetterSpacing="1" />
 										<ItemsControl ItemsSource="{Binding Main.LoaderFilterOptions}">
@@ -112,10 +114,10 @@
 							</Button.Flyout>
 						</Button>
 
-						<Button Content="Category ▾">
+						<Button x:Name="CategoryButton" Content="Category ▾">
 							<Button.Flyout>
 								<Flyout Placement="BottomEdgeAlignedLeft">
-									<StackPanel Spacing="6" MinWidth="200">
+									<StackPanel Classes="flyout-content" Spacing="6" MinWidth="200">
 										<TextBlock Text="FILTER BY CATEGORY" FontSize="10" FontWeight="SemiBold"
                                                    Foreground="{StaticResource TextMutedBrush}" LetterSpacing="1" />
 										<ItemsControl ItemsSource="{Binding Main.CategoryFilterOptions}">
@@ -133,10 +135,10 @@
 							</Button.Flyout>
 						</Button>
 
-						<Button Content="Date ▾">
+						<Button x:Name="DateButton" Content="Date ▾">
 							<Button.Flyout>
 								<Flyout Placement="BottomEdgeAlignedLeft">
-									<StackPanel Spacing="6" MinWidth="160">
+									<StackPanel Classes="flyout-content" Spacing="6" MinWidth="160">
 										<TextBlock Text="SORT BY DATE" FontSize="10" FontWeight="SemiBold"
                                                    Foreground="{StaticResource TextMutedBrush}" LetterSpacing="1" />
 										<Button Content="Newest first" HorizontalAlignment="Stretch"
@@ -167,43 +169,141 @@
 						</ListBox.ItemsPanel>
 						<ListBox.ItemTemplate>
 							<DataTemplate x:DataType="models:Instance">
-								<StackPanel Width="200" Spacing="12" HorizontalAlignment="Center">
-									<Panel Width="64" Height="64" HorizontalAlignment="Center">
-										<Border CornerRadius="32"
-                                                Background="{StaticResource AccentMauveBrush}"
-                                                IsVisible="{Binding IconUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
-											<TextBlock Text="{Binding Initial}"
-                                                       FontWeight="Bold" FontSize="24"
-                                                       Foreground="{StaticResource CrustBrush}"
-                                                       HorizontalAlignment="Center"
-                                                       VerticalAlignment="Center" />
-										</Border>
-										<Image Source="{Binding IconUrl, Converter={x:Static converters:FilePathToBitmapConverter.Instance}}"
-                                               Width="64" Height="64"
-                                               Stretch="UniformToFill"
-                                               IsVisible="{Binding IconUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-									</Panel>
+								<Panel Width="200">
+									<StackPanel Spacing="12" HorizontalAlignment="Center">
+										<Panel Width="64" Height="64" HorizontalAlignment="Center">
+											<Border CornerRadius="32"
+                                                    Background="{StaticResource AccentMauveBrush}"
+                                                    IsVisible="{Binding IconUrl, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+												<TextBlock Text="{Binding Initial}"
+                                                           FontWeight="Bold" FontSize="24"
+                                                           Foreground="{StaticResource CrustBrush}"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center" />
+											</Border>
+											<Image Source="{Binding IconUrl, Converter={x:Static converters:FilePathToBitmapConverter.Instance}}"
+                                                   Width="64" Height="64"
+                                                   Stretch="UniformToFill"
+                                                   IsVisible="{Binding IconUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+										</Panel>
 
-									<TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="15"
-                                               Foreground="{StaticResource TextPrimaryBrush}"
-                                               HorizontalAlignment="Center" TextAlignment="Center"
-                                               TextTrimming="CharacterEllipsis" />
+										<TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="15"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   HorizontalAlignment="Center" TextAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" />
 
-									<StackPanel HorizontalAlignment="Center" Spacing="4">
-										<Border Classes="chip" HorizontalAlignment="Center">
-											<TextBlock Text="{Binding GameVersion, StringFormat='Version: {0}'}" />
-										</Border>
-										<Border Classes="chip" HorizontalAlignment="Center">
-											<TextBlock Text="{Binding Loader, StringFormat='Loader: {0}'}" />
-										</Border>
-										<Border Classes="chip" HorizontalAlignment="Center">
-											<TextBlock Text="{Binding Mods.Count, StringFormat='{}{0} mod(s)'}" />
-										</Border>
+										<StackPanel HorizontalAlignment="Center" Spacing="4">
+											<Border Classes="chip" HorizontalAlignment="Center">
+												<TextBlock Text="{Binding GameVersion, StringFormat='Version: {0}'}" />
+											</Border>
+											<Border Classes="chip" HorizontalAlignment="Center">
+												<TextBlock Text="{Binding Loader, StringFormat='Loader: {0}'}" />
+											</Border>
+											<Border Classes="chip" HorizontalAlignment="Center">
+												<TextBlock Text="{Binding Mods.Count, StringFormat='{}{0} mod(s)'}" />
+											</Border>
+										</StackPanel>
 									</StackPanel>
-								</StackPanel>
+
+									<!-- Edit: opens this instance's detail view (mods, launch, settings) -->
+									<Button Classes="icon-circle" Content="✎"
+                                            HorizontalAlignment="Right" VerticalAlignment="Top"
+                                            Command="{Binding $parent[ListBox].((vm:HomeViewModel)DataContext).Main.SelectInstanceCommand}"
+                                            CommandParameter="{Binding}" />
+								</Panel>
 							</DataTemplate>
 						</ListBox.ItemTemplate>
 					</ListBox>
+					</Border>
+				</Grid>
+			</Border>
+
+			<!-- Instance detail view: mods installed, launch, settings -->
+			<Border Grid.Row="1" Classes="card" Padding="0"
+                    IsVisible="{Binding Main.IsViewingInstance}">
+				<Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
+
+					<!-- Top bar: back + name + settings + launch -->
+					<Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,Auto" Margin="20,18" ColumnSpacing="10">
+						<Button Grid.Column="0" Content="← Back"
+                                Command="{Binding Main.CloseInstanceDetailCommand}" />
+
+						<TextBlock Grid.Column="1" Text="{Binding Main.SelectedInstance.Name}"
+                                   FontSize="16" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+
+						<Button Grid.Column="2" Classes="icon-circle" Content="⚙"
+                                Command="{Binding Main.OpenInstanceSettingsCommand}" />
+
+						<Button Grid.Column="3" Classes="accent"
+                                Command="{Binding Main.LaunchMinecraftCommand}">
+							<StackPanel Orientation="Horizontal" Spacing="8">
+								<TextBlock Text="▶" VerticalAlignment="Center" />
+								<TextBlock Text="Launch Minecraft" VerticalAlignment="Center" />
+							</StackPanel>
+						</Button>
+					</Grid>
+
+					<Border Grid.Row="1" Height="1" Background="{StaticResource Surface1Brush}" />
+
+					<!-- Instance info -->
+					<StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Margin="20,12">
+						<Border Classes="chip">
+							<TextBlock Text="{Binding Main.SelectedInstance.GameVersion, StringFormat='Version: {0}'}" />
+						</Border>
+						<Border Classes="chip">
+							<TextBlock Text="{Binding Main.SelectedInstance.Loader, StringFormat='Loader: {0}'}" />
+						</Border>
+						<Border Classes="chip">
+							<TextBlock Text="{Binding Main.InstanceMods.Count, StringFormat='{}{0} mod(s)'}" />
+						</Border>
+					</StackPanel>
+
+					<Border Grid.Row="3" Height="1" Background="{StaticResource Surface1Brush}" />
+
+					<!-- Darker recessed area holding the installed-mods gallery -->
+					<Border Grid.Row="4" Background="{StaticResource MantleBrush}"
+                            CornerRadius="0,0,10,10"
+                            Padding="20">
+						<Panel>
+							<ListBox Classes="card-gallery" ItemsSource="{Binding Main.InstanceMods}">
+								<ListBox.ItemsPanel>
+									<ItemsPanelTemplate>
+										<WrapPanel />
+									</ItemsPanelTemplate>
+								</ListBox.ItemsPanel>
+								<ListBox.ItemTemplate>
+									<DataTemplate x:DataType="models:InstalledMod">
+										<StackPanel Width="200" Spacing="10" HorizontalAlignment="Center">
+											<asyncImageLoader:AdvancedImage
+                                                Source="{Binding IconUrl}"
+                                                Width="64" Height="64"
+                                                HorizontalAlignment="Center" />
+
+											<TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="15"
+                                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                                       HorizontalAlignment="Center" TextAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis" />
+
+											<StackPanel HorizontalAlignment="Center" Spacing="4">
+												<Border Classes="chip" HorizontalAlignment="Center">
+													<TextBlock Text="{Binding VersionNumber, StringFormat='Version: {0}'}" />
+												</Border>
+												<Border Classes="chip" HorizontalAlignment="Center">
+													<TextBlock Text="{Binding ProjectType}" />
+												</Border>
+											</StackPanel>
+										</StackPanel>
+									</DataTemplate>
+								</ListBox.ItemTemplate>
+							</ListBox>
+
+							<TextBlock Text="No mods installed yet — add some from the Library" FontSize="13"
+                                       Foreground="{StaticResource TextMutedBrush}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       IsVisible="{Binding Main.InstanceMods.Count, Converter={x:Static converters:IsZeroConverter.Instance}}" />
+						</Panel>
 					</Border>
 				</Grid>
 			</Border>
@@ -305,6 +405,60 @@
 							<Button Content="Cancel" Command="{Binding Main.CancelCreateInstanceCommand}" />
 							<Button Content="Create" Classes="accent"
                                     Command="{Binding Main.ConfirmCreateInstanceCommand}" />
+						</StackPanel>
+					</StackPanel>
+				</ScrollViewer>
+			</Border>
+		</Border>
+
+		<!-- Instance settings modal -->
+		<Border Background="#CC000000" IsVisible="{Binding Main.IsInstanceSettingsOpen}">
+			<Border Classes="card" Width="440" MaxHeight="680"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+				<ScrollViewer>
+					<StackPanel Spacing="16">
+						<TextBlock Text="INSTANCE SETTINGS" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   LetterSpacing="1.5" />
+
+						<TextBox Text="{Binding Main.EditInstanceName}" Watermark="Instance name" />
+						<TextBox Text="{Binding Main.EditInstanceDescription}" Watermark="Description (optional)" />
+						<StackPanel Orientation="Horizontal" Spacing="8">
+							<ComboBox ItemsSource="{Binding Main.AvailableGameVersions}"
+                                      SelectedItem="{Binding Main.EditInstanceGameVersion}"
+                                      MinWidth="150" />
+							<ComboBox ItemsSource="{Binding Main.AvailableLoaders}"
+                                      SelectedItem="{Binding Main.EditInstanceLoader}"
+                                      MinWidth="130" />
+						</StackPanel>
+
+						<StackPanel Spacing="6">
+							<TextBlock Text="CATEGORIES" FontSize="10" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextMutedBrush}" LetterSpacing="1" />
+							<ItemsControl ItemsSource="{Binding Main.EditInstanceCategoryOptions}">
+								<ItemsControl.ItemsPanel>
+									<ItemsPanelTemplate>
+										<WrapPanel />
+									</ItemsPanelTemplate>
+								</ItemsControl.ItemsPanel>
+								<ItemsControl.ItemTemplate>
+									<DataTemplate x:DataType="vm:FilterOptionViewModel">
+										<CheckBox IsChecked="{Binding IsSelected}" Content="{Binding Label}"
+                                                  Margin="0,0,12,4" />
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
+						</StackPanel>
+
+						<TextBlock Text="{Binding Main.EditInstanceError}"
+                                   Foreground="{StaticResource AccentRedBrush}"
+                                   FontSize="13"
+                                   IsVisible="{Binding Main.EditInstanceError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+						<StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+							<Button Content="Cancel" Command="{Binding Main.CloseInstanceSettingsCommand}" />
+							<Button Content="Save" Classes="accent"
+                                    Command="{Binding Main.SaveInstanceEditsCommand}" />
 						</StackPanel>
 					</StackPanel>
 				</ScrollViewer>

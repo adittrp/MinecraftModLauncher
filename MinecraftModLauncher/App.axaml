@@ -140,5 +140,39 @@
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Cursor" Value="Hand" />
         </Style>
+
+        <!-- Small round icon button (e.g. the card "edit" pencil). -->
+        <Style Selector="Button.icon-circle">
+            <Setter Property="Width" Value="26" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="13" />
+            <Setter Property="Background" Value="{StaticResource Surface2Brush}" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+
+        <!-- Slide-down + fade entrance for flyout content. Add Classes="flyout-content"
+             to a Flyout's root panel; code-behind (see HomeView/LibraryView .axaml.cs)
+             toggles "open" on that SAME control via Flyout.Opened/Closed. Unlike
+             FlyoutPresenterClasses (a one-shot copy onto a presenter that's recreated
+             per open — toggling it after Opened never reaches what's on screen), the
+             Flyout's Content is one persistent control for its whole lifetime, so
+             mutating its Classes directly always live-updates. -->
+        <Style Selector="StackPanel.flyout-content">
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="RenderTransform" Value="translateY(-10px)" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.15" Easing="CubicEaseOut" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" Easing="CubicEaseOut" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="StackPanel.flyout-content.open">
+            <Setter Property="Opacity" Value="1" />
+            <Setter Property="RenderTransform" Value="translateY(0)" />
+        </Style>
     </Application.Styles>
 </Application>

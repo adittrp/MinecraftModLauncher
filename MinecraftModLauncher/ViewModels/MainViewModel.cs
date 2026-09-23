@@ -80,7 +80,19 @@ namespace MinecraftModLauncher.ViewModels {
         [ObservableProperty]
         private Instance? _selectedInstance;
 
+        // True while Home shows a single instance's detail view (mods + launch +
+        // settings) instead of the normal card gallery.
         [ObservableProperty] private bool _isViewingInstance;
+
+        // Instance settings popup (name/description/version/loader/categories),
+        // opened from the detail view.
+        [ObservableProperty] private bool _isInstanceSettingsOpen;
+        [ObservableProperty] private string _editInstanceName = "";
+        [ObservableProperty] private string _editInstanceDescription = "";
+        [ObservableProperty] private string _editInstanceGameVersion = "";
+        [ObservableProperty] private string _editInstanceLoader = "";
+        [ObservableProperty] private string _editInstanceError = "";
+        public ObservableCollection<FilterOptionViewModel> EditInstanceCategoryOptions { get; } = new();
 
         // Instance creation form
         [ObservableProperty] private string _newInstanceName = "";
@@ -366,8 +378,72 @@ namespace MinecraftModLauncher.ViewModels {
         }
 
         [RelayCommand]
-        private void BackToSearch() {
+        private void CloseInstanceDetail() {
             IsViewingInstance = false;
+        }
+
+        [RelayCommand]
+        private void OpenInstanceSettings() {
+            if (SelectedInstance is not { } instance) return;
+
+            EditInstanceName = instance.Name;
+            EditInstanceDescription = instance.Description;
+            EditInstanceGameVersion = instance.GameVersion;
+            EditInstanceLoader = instance.Loader;
+            EditInstanceError = "";
+
+            List<string> currentCategories = instance.Categories ?? new List<string>();
+            EditInstanceCategoryOptions.Clear();
+            foreach (string category in AvailableModpackCategories)
+                EditInstanceCategoryOptions.Add(new FilterOptionViewModel(category) { IsSelected = currentCategories.Contains(category) });
+
+            IsInstanceSettingsOpen = true;
+        }
+
+        [RelayCommand]
+        private void CloseInstanceSettings() {
+            IsInstanceSettingsOpen = false;
+        }
+
+        [RelayCommand]
+        private async Task SaveInstanceEdits() {
+            if (SelectedInstance is not { } instance) return;
+
+            if (string.IsNullOrWhiteSpace(EditInstanceName)) {
+                EditInstanceError = "Name is required";
+                return;
+            }
+
+            bool nameChanged = EditInstanceName != instance.Name;
+            if (nameChanged && Instances.Any(i => i.Name == EditInstanceName)) {
+                EditInstanceError = "Instance name already exists";
+                return;
+            }
+
+            Instance working = nameChanged
+                ? await _instanceService.renameInstance(instance, EditInstanceName)
+                : instance;
+
+            List<string> selectedCategories = EditInstanceCategoryOptions
+                .Where(o => o.IsSelected)
+                .Select(o => o.Value)
+                .ToList();
+
+            Instance updated = working with {
+                Description = EditInstanceDescription,
+                GameVersion = EditInstanceGameVersion,
+                Loader = EditInstanceLoader,
+                Categories = selectedCategories,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+            await _instanceService.saveInstance(updated);
+
+            int idx = Instances.IndexOf(instance);
+            if (idx >= 0) Instances[idx] = updated;
+            SelectedInstance = updated;
+            RebuildFilterOptions();
+
+            IsInstanceSettingsOpen = false;
         }
 
         private async Task InstallMod(ModrinthSearchHit hit) {

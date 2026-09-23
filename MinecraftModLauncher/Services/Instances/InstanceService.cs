@@ -59,6 +59,23 @@ public class InstanceService
         await File.WriteAllTextAsync(jsonPath, json);
     }
 
+    // Instance.Name doubles as the on-disk folder name, so renaming has to move
+    // the folder — a plain saveInstance(instance with { Name = newName }) would
+    // just write a second, orphaned copy under the new name.
+    public async Task<Instance> renameInstance(Instance instance, string newName)
+    {
+        if (newName == instance.Name) return instance;
+
+        string oldDir = Path.Combine(_instancesRoot, instance.Name);
+        string newDir = Path.Combine(_instancesRoot, newName);
+        if (Directory.Exists(oldDir))
+            Directory.Move(oldDir, newDir);
+
+        Instance renamed = instance with { Name = newName };
+        await saveInstance(renamed);
+        return renamed;
+    }
+
     public async Task<Instance> addMod(Instance instance, InstalledMod mod)
     {
         List<InstalledMod> updatedMods = instance.Mods
