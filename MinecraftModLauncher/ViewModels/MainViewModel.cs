@@ -120,7 +120,7 @@ namespace MinecraftModLauncher.ViewModels {
 
             ModrinthSearch = new ModrinthSearchViewModel(
                 _modrinthService,
-                getGameVersion: () => SelectedInstance?.GameVersion ?? "1.21.1", // replace with real selected variables
+                getGameVersion: () => SelectedInstance?.GameVersion,
                 installHandlers: new() {
                     ["mod"] = InstallMod,
                     ["modpack"] = InstallModpack
@@ -135,6 +135,10 @@ namespace MinecraftModLauncher.ViewModels {
             OnPropertyChanged(nameof(IsLibrary));
             OnPropertyChanged(nameof(IsConsole));
             OnPropertyChanged(nameof(IsSettings));
+        }
+
+        partial void OnSelectedInstanceChanged(Instance? value) {
+            ModrinthSearch.OnTargetInstanceChanged(value?.Loader);
         }
 
         [RelayCommand]

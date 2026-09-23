@@ -13,7 +13,7 @@ namespace MinecraftModLauncher.ViewModels
     public partial class ModrinthSearchViewModel : ViewModelBase
     {
         private readonly ModrinthService _modrinthService;
-        private readonly Func<string> _getGameVersion;
+        private readonly Func<string?> _getGameVersion;
         private readonly Dictionary<string, Func<ModrinthSearchHit, Task>> _installHandlers;
 
         [ObservableProperty]
@@ -35,7 +35,7 @@ namespace MinecraftModLauncher.ViewModels
         public List<string> ProjectTypes { get;  } = new() { "mod", "modpack", "resourcepack", "shader", "datapack" };
         public List<string> AvailableLoaders { get; } = new() { "fabric", "forge", "quilt", "neoforge" };
 
-        public ModrinthSearchViewModel(ModrinthService modrinthService, Func<string> getGameVersion,
+        public ModrinthSearchViewModel(ModrinthService modrinthService, Func<string?> getGameVersion,
             Dictionary<string, Func<ModrinthSearchHit, Task>> installHandlers)
         {
             _modrinthService = modrinthService;
@@ -45,6 +45,16 @@ namespace MinecraftModLauncher.ViewModels
             // Fires exactly once, at app start, so results are already loaded by the
             // time the Library page is first opened.
             _ = LoadCategoryFilterOptions();
+            _ = Search();
+        }
+
+        // Called by MainViewModel whenever the target instance changes (Home's gallery,
+        // Library's "installing to" picker, or a new instance being created). Keeps the
+        // Loader filter matched to whatever instance is currently selected, and always
+        // re-searches — SelectedLoader's own change-hook alone would miss the case where
+        // two instances share a loader but differ in game version.
+        public void OnTargetInstanceChanged(string? loader) {
+            SelectedLoader = loader;
             _ = Search();
         }
 
