@@ -15,6 +15,7 @@ public class GameProcessLauncher
     public Process Launch(
         string javaPath,
         string versionId,
+        string mainClass,
         JsonElement versionMeta,
         List<string> libraryPaths,
         string clientJarPath,
@@ -27,7 +28,6 @@ public class GameProcessLauncher
         var allJars = new List<String>(libraryPaths) { clientJarPath };
         string classpath = string.Join(classPathSeparator, allJars);
 
-        string mainClass = versionMeta.GetProperty("mainClass").GetString();
         string assetIndex = versionMeta.GetProperty("assetIndex").GetProperty("id").GetString();
         
         var startInfo = new ProcessStartInfo {

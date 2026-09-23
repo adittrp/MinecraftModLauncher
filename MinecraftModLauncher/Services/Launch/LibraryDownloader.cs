@@ -31,33 +31,66 @@ public class LibraryDownloader
         return _downloader.DownloadFile(url, destPath);
     }
     
-    // Downloads every applicable library, returning the classpath paths.
-    public async Task<List<string>> DownloadLibraries(JsonElement versionMeta, string librariesDir) {
+    // Downloads every applicable library from a vanilla version meta, returning the classpath paths.
+    public Task<List<string>> DownloadLibraries(JsonElement versionMeta, string librariesDir) =>
+        DownloadLibrariesFromArray(versionMeta.GetProperty("libraries"), librariesDir);
+
+    // Downloads every applicable library from a raw libraries array — used for both
+    // vanilla version metas and mod-loader profiles (Fabric/Quilt), which list their
+    // libraries as Maven {name, url} coordinates rather than vanilla's downloads.artifact.
+    public async Task<List<string>> DownloadLibrariesFromArray(JsonElement libraries, string librariesDir) {
         var classpathEntries = new List<string>();
         var downloadTasks = new List<Task>();
-        JsonElement libraries = versionMeta.GetProperty("libraries");
 
         foreach (JsonElement lib in libraries.EnumerateArray()) {
             if (!ShouldIncludeLibrary(lib))
                 continue;
 
-            JsonElement downloads = lib.GetProperty("downloads");
+            (string url, string relativePath)? resolved = ResolveLibrary(lib);
+            if (resolved is not { } library) continue;
 
-            if (downloads.TryGetProperty("artifact", out JsonElement artifact)) {
-                string url = artifact.GetProperty("url").GetString()!;
-                string relativePath = artifact.GetProperty("path").GetString()!;
-                string fullPath = Path.Combine(librariesDir,
-                    relativePath.Replace('/', Path.DirectorySeparatorChar));
+            string fullPath = Path.Combine(librariesDir,
+                library.relativePath.Replace('/', Path.DirectorySeparatorChar));
 
-                classpathEntries.Add(fullPath);
-                downloadTasks.Add(_downloader.DownloadFile(url, fullPath));
-            }
+            classpathEntries.Add(fullPath);
+            downloadTasks.Add(_downloader.DownloadFile(library.url, fullPath));
         }
 
         await Task.WhenAll(downloadTasks);
         return classpathEntries;
     }
-    
+
+    private (string url, string relativePath)? ResolveLibrary(JsonElement lib) {
+        // Vanilla shape: downloads.artifact.{url,path}
+        if (lib.TryGetProperty("downloads", out JsonElement downloads) &&
+            downloads.TryGetProperty("artifact", out JsonElement artifact)) {
+            return (artifact.GetProperty("url").GetString()!, artifact.GetProperty("path").GetString()!);
+        }
+
+        // Fabric/Quilt shape: Maven coordinate name + repo base url
+        if (lib.TryGetProperty("name", out JsonElement nameProp)) {
+            string mavenCoordinate = nameProp.GetString()!;
+            string baseUrl = lib.TryGetProperty("url", out JsonElement urlProp)
+                ? urlProp.GetString()!
+                : "https://maven.fabricmc.net/";
+
+            string relativePath = MavenCoordinateToPath(mavenCoordinate);
+            return (baseUrl.TrimEnd('/') + "/" + relativePath, relativePath);
+        }
+
+        return null;
+    }
+
+    // "group.id:artifact:version[:classifier]" -> "group/id/artifact/version/artifact-version[-classifier].jar"
+    private static string MavenCoordinateToPath(string coordinate) {
+        string[] parts = coordinate.Split(':');
+        string group = parts[0].Replace('.', '/');
+        string artifact = parts[1];
+        string version = parts[2];
+        string classifierSuffix = parts.Length > 3 ? $"-{parts[3]}" : "";
+        return $"{group}/{artifact}/{version}/{artifact}-{version}{classifierSuffix}.jar";
+    }
+
     private bool ShouldIncludeLibrary(JsonElement lib) {
         if (!lib.TryGetProperty("rules", out JsonElement rules))
             return true;
