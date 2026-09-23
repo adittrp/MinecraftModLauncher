@@ -43,6 +43,13 @@ public class GameProcessLauncher
         startInfo.ArgumentList.Add("-Xmx2G");
         startInfo.ArgumentList.Add("-Xms512M");
         startInfo.ArgumentList.Add($"-Djava.library.path={Path.Combine(gameDirPath, "natives")}");
+
+        // Mojang's own version JSON gates this behind a rules: [{os: {name: "osx"}}]
+        // entry in arguments.jvm — GLFW/AWT on macOS require the JVM's main thread
+        // to run the render/event loop. Without it the game crashes on launch.
+        if (OperatingSystem.IsMacOS())
+            startInfo.ArgumentList.Add("-XstartOnFirstThread");
+
         startInfo.ArgumentList.Add("-cp");
         startInfo.ArgumentList.Add(classpath);
         startInfo.ArgumentList.Add(mainClass);
