@@ -70,9 +70,9 @@
 					<!-- Sort/filter bar -->
 					<StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Margin="20,12">
 
-						<Button Content="Version ▾">
+						<Button x:Name="VersionButton" Content="Version ▾">
 							<Button.Flyout>
-								<Flyout x:Name="VersionFlyout" FlyoutPresenterClasses="slide" Placement="BottomEdgeAlignedLeft">
+								<Flyout FlyoutPresenterClasses="slide" Placement="BottomEdgeAlignedLeft">
 									<StackPanel Spacing="6" MinWidth="180">
 										<TextBlock Text="FILTER BY VERSION" FontSize="10" FontWeight="SemiBold"
                                                    Foreground="{StaticResource TextMutedBrush}" LetterSpacing="1" />
@@ -91,9 +91,9 @@
 							</Button.Flyout>
 						</Button>
 
-						<Button Content="Loader ▾">
+						<Button x:Name="LoaderButton" Content="Loader ▾">
 							<Button.Flyout>
-								<Flyout x:Name="LoaderFlyout" FlyoutPresenterClasses="slide" Placement="BottomEdgeAlignedLeft">
+								<Flyout FlyoutPresenterClasses="slide" Placement="BottomEdgeAlignedLeft">
 									<StackPanel Spacing="6" MinWidth="180">
 										<TextBlock Text="FILTER BY LOADER" FontSize="10" FontWeight="SemiBold"
                                                    Foreground="{StaticResource TextMutedBrush}" LetterSpacing="1" />
@@ -112,9 +112,9 @@
 							</Button.Flyout>
 						</Button>
 
-						<Button Content="Category ▾">
+						<Button x:Name="CategoryButton" Content="Category ▾">
 							<Button.Flyout>
-								<Flyout x:Name="CategoryFlyout" FlyoutPresenterClasses="slide" Placement="BottomEdgeAlignedLeft">
+								<Flyout FlyoutPresenterClasses="slide" Placement="BottomEdgeAlignedLeft">
 									<StackPanel Spacing="6" MinWidth="200">
 										<TextBlock Text="FILTER BY CATEGORY" FontSize="10" FontWeight="SemiBold"
                                                    Foreground="{StaticResource TextMutedBrush}" LetterSpacing="1" />
@@ -133,9 +133,9 @@
 							</Button.Flyout>
 						</Button>
 
-						<Button Content="Date ▾">
+						<Button x:Name="DateButton" Content="Date ▾">
 							<Button.Flyout>
-								<Flyout x:Name="DateFlyout" FlyoutPresenterClasses="slide" Placement="BottomEdgeAlignedLeft">
+								<Flyout FlyoutPresenterClasses="slide" Placement="BottomEdgeAlignedLeft">
 									<StackPanel Spacing="6" MinWidth="160">
 										<TextBlock Text="SORT BY DATE" FontSize="10" FontWeight="SemiBold"
                                                    Foreground="{StaticResource TextMutedBrush}" LetterSpacing="1" />

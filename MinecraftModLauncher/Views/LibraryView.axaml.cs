@@ -8,11 +8,11 @@ public partial class LibraryView : UserControl {
     public LibraryView() {
         InitializeComponent();
 
-        TargetInstanceFlyout.WireSlide();
-        TypeFlyout.WireSlide();
-        LoaderFlyout.WireSlide();
-        LibraryCategoryFlyout.WireSlide();
-        SortFlyout.WireSlide();
+        TargetInstanceButton.WireFlyoutSlide();
+        TypeButton.WireFlyoutSlide();
+        LoaderButton.WireFlyoutSlide();
+        LibraryCategoryButton.WireFlyoutSlide();
+        SortButton.WireFlyoutSlide();
     }
     private void InitializeComponent() {
         AvaloniaXamlLoader.Load(this);

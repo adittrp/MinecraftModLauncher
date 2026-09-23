@@ -8,10 +8,10 @@ public partial class HomeView : UserControl {
     public HomeView() {
         InitializeComponent();
 
-        VersionFlyout.WireSlide();
-        LoaderFlyout.WireSlide();
-        CategoryFlyout.WireSlide();
-        DateFlyout.WireSlide();
+        VersionButton.WireFlyoutSlide();
+        LoaderButton.WireFlyoutSlide();
+        CategoryButton.WireFlyoutSlide();
+        DateButton.WireFlyoutSlide();
     }
     private void InitializeComponent() {
         AvaloniaXamlLoader.Load(this);
