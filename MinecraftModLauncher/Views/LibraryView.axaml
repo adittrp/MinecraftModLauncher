@@ -3,119 +3,263 @@
              xmlns:vm="using:MinecraftModLauncher.ViewModels"
              xmlns:modrinth="using:MinecraftModLauncher.Models.Modrinth"
              xmlns:models="using:MinecraftModLauncher.Models"
+             xmlns:converters="using:MinecraftModLauncher.Converters"
              xmlns:asyncImageLoader="using:AsyncImageLoader"
              x:Class="MinecraftModLauncher.Views.LibraryView"
              x:DataType="vm:LibraryViewModel">
 
-	<DockPanel Margin="{StaticResource PageMargin}">
+	<Grid Margin="{StaticResource PageMargin}" RowDefinitions="Auto,*" RowSpacing="20">
 
-		<!-- Header -->
-		<StackPanel DockPanel.Dock="Top" Spacing="16" Margin="0,0,0,16">
-			<TextBlock Text="Library" FontSize="28" FontWeight="Bold"
-                       Foreground="{StaticResource TextPrimaryBrush}" />
+		<!-- Header: title + minimized "which instance am I installing to" menu -->
+		<Border Grid.Row="0" Classes="card">
+			<Grid ColumnDefinitions="*,Auto">
+				<TextBlock Grid.Column="0" Text="Library" FontSize="28" FontWeight="Bold"
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           VerticalAlignment="Center" />
 
-			<!-- Search bar -->
-			<Grid ColumnDefinitions="Auto,*,Auto">
-				<ComboBox Grid.Column="0"
-                          ItemsSource="{Binding Main.ModrinthSearch.ProjectTypes}"
-                          SelectedItem="{Binding Main.ModrinthSearch.SelectedProjectType}"
-                          Margin="0,0,8,0" />
-				<TextBox Grid.Column="1"
-                         Text="{Binding Main.ModrinthSearch.SearchQuery}"
-                         Watermark="Search Modrinth..." />
-				<Button Grid.Column="2" Content="Search"
-                        Command="{Binding Main.ModrinthSearch.SearchCommand}"
-                        Margin="8,0,0,0" />
-			</Grid>
-
-			<TextBlock Text="{Binding Main.ModrinthSearch.StatusMessage}"
-                       Foreground="{StaticResource TextMutedBrush}" FontSize="12" />
-		</StackPanel>
-
-		<!-- Instance mods view -->
-		<StackPanel DockPanel.Dock="Top"
-                    IsVisible="{Binding Main.IsViewingInstance}">
-			<Button Content="← Back to Search"
-                    Command="{Binding Main.BackToSearchCommand}"
-                    Background="Transparent"
-                    Foreground="{StaticResource AccentBlueBrush}"
-                    BorderThickness="0" Padding="0,8"
-                    Cursor="Hand" />
-
-			<TextBlock Text="INSTALLED MODS" FontSize="11" FontWeight="SemiBold"
-                       Foreground="{StaticResource TextMutedBrush}"
-                       LetterSpacing="1.5" Margin="0,8,0,12" />
-
-			<ListBox ItemsSource="{Binding Main.InstanceMods}"
-                     Background="Transparent">
-				<ListBox.ItemTemplate>
-					<DataTemplate x:DataType="models:InstalledMod">
-						<Border Padding="12,10" Margin="0,2"
-                                Background="{StaticResource Surface0Brush}"
-                                CornerRadius="8">
-							<Grid ColumnDefinitions="*,Auto">
-								<StackPanel Grid.Column="0" Spacing="3">
-									<TextBlock Text="{Binding Title}" FontWeight="SemiBold"
-                                               FontSize="14"
-                                               Foreground="{StaticResource TextPrimaryBrush}" />
-									<StackPanel Orientation="Horizontal" Spacing="12">
-										<TextBlock Text="{Binding VersionNumber}" FontSize="12"
-                                                   Foreground="{StaticResource TextMutedBrush}" />
-										<TextBlock Text="{Binding ProjectType}" FontSize="12"
-                                                   Foreground="{StaticResource TextMutedBrush}" />
-									</StackPanel>
-								</StackPanel>
-								<TextBlock Grid.Column="1" Text="{Binding Filename}"
-                                           FontSize="11"
+				<Button Grid.Column="1" VerticalAlignment="Center">
+					<Button.Flyout>
+						<Flyout x:Name="TargetInstanceFlyout" FlyoutPresenterClasses="slide" Placement="BottomEdgeAlignedRight">
+							<StackPanel Spacing="4" MinWidth="200">
+								<TextBlock Text="INSTALL TO" FontSize="10" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextMutedBrush}" LetterSpacing="1" />
+								<ItemsControl ItemsSource="{Binding Main.Instances}">
+									<ItemsControl.ItemTemplate>
+										<DataTemplate x:DataType="models:Instance">
+											<Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                                    Command="{Binding $parent[ItemsControl].((vm:LibraryViewModel)DataContext).Main.SelectInstanceCommand}"
+                                                    CommandParameter="{Binding}">
+												<TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+											</Button>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+								<TextBlock Text="No instances yet — create one from Home" FontSize="12"
                                            Foreground="{StaticResource TextMutedBrush}"
-                                           VerticalAlignment="Center" />
-							</Grid>
-						</Border>
-					</DataTemplate>
-				</ListBox.ItemTemplate>
-			</ListBox>
-		</StackPanel>
-
-		<!-- Search results -->
-		<ListBox ItemsSource="{Binding Main.ModrinthSearch.Results}"
-                 IsVisible="{Binding !Main.IsViewingInstance}"
-                 Background="Transparent">
-			<ListBox.ItemTemplate>
-				<DataTemplate x:DataType="modrinth:ModrinthSearchHit">
-					<Border Padding="12" Margin="0,3"
-                            Background="{StaticResource Surface0Brush}"
-                            CornerRadius="8">
-						<Grid ColumnDefinitions="48,*,Auto" ColumnSpacing="14">
-							<asyncImageLoader:AdvancedImage
-                                Grid.Column="0" Width="48" Height="48"
-                                Source="{Binding IconUrl}" />
-							<StackPanel Grid.Column="1" Spacing="4">
-								<TextBlock Text="{Binding Title}" FontWeight="Bold"
-                                           FontSize="14"
-                                           Foreground="{StaticResource TextPrimaryBrush}" />
-								<TextBlock Text="{Binding Description}" TextWrapping="Wrap"
-                                           Foreground="{StaticResource TextSecondaryBrush}"
-                                           FontSize="12"
-                                           MaxLines="2" />
-								<StackPanel Orientation="Horizontal" Spacing="12">
-									<TextBlock Text="{Binding Downloads,
-                                                   StringFormat='{}{0:N0} downloads'}"
-                                               Foreground="{StaticResource TextMutedBrush}"
-                                               FontSize="11" />
-									<TextBlock Text="{Binding Author}"
-                                               Foreground="{StaticResource TextMutedBrush}"
-                                               FontSize="11" />
-								</StackPanel>
+                                           IsVisible="{Binding Main.Instances.Count, Converter={x:Static converters:IsZeroConverter.Instance}}" />
 							</StackPanel>
-							<Button Grid.Column="2" Content="Install"
-                                    VerticalAlignment="Center"
-                                    Command="{Binding $parent[ListBox].((vm:LibraryViewModel)DataContext).Main.ModrinthSearch.InstallCommand}"
-                                    CommandParameter="{Binding}" />
-						</Grid>
-					</Border>
-				</DataTemplate>
-			</ListBox.ItemTemplate>
-		</ListBox>
+						</Flyout>
+					</Button.Flyout>
+					<StackPanel Orientation="Horizontal" Spacing="6">
+						<TextBlock Text="Installing to:" Foreground="{StaticResource TextMutedBrush}" FontSize="12" VerticalAlignment="Center" />
+						<TextBlock Text="{Binding Main.SelectedInstance.Name, FallbackValue='None selected', TargetNullValue='None selected'}"
+                                   FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" />
+						<TextBlock Text="▾" VerticalAlignment="Center" />
+					</StackPanel>
+				</Button>
+			</Grid>
+		</Border>
 
-	</DockPanel>
+		<!-- Connected box: search + filter bar + results, fills remaining height -->
+		<Border Grid.Row="1" Classes="card" Padding="0">
+			<Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
+
+				<!-- Search row -->
+				<Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="20,18">
+					<TextBox Grid.Column="0" Text="{Binding Main.ModrinthSearch.SearchQuery}"
+                             Watermark="Search Modrinth..." Margin="0,0,10,0" />
+					<Button Grid.Column="1" Content="Search" Classes="accent"
+                            Command="{Binding Main.ModrinthSearch.SearchCommand}" />
+				</Grid>
+
+				<Border Grid.Row="1" Height="1" Background="{StaticResource Surface1Brush}" />
+
+				<!-- Sort/filter bar -->
+				<Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto" Margin="20,12">
+
+					<Button Grid.Column="0" Content="{Binding Main.ModrinthSearch.SelectedProjectType, StringFormat='Type: {0} ▾'}">
+						<Button.Flyout>
+							<Flyout x:Name="TypeFlyout" FlyoutPresenterClasses="slide" Placement="BottomEdgeAlignedLeft">
+								<StackPanel Spacing="4" MinWidth="160">
+									<TextBlock Text="PROJECT TYPE" FontSize="10" FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextMutedBrush}" LetterSpacing="1" />
+									<ItemsControl ItemsSource="{Binding Main.ModrinthSearch.ProjectTypes}">
+										<ItemsControl.ItemTemplate>
+											<DataTemplate x:DataType="x:String">
+												<Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                                        Content="{Binding}"
+                                                        Command="{Binding $parent[ItemsControl].((vm:LibraryViewModel)DataContext).Main.ModrinthSearch.SetProjectTypeCommand}"
+                                                        CommandParameter="{Binding}" />
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
+								</StackPanel>
+							</Flyout>
+						</Button.Flyout>
+					</Button>
+
+					<Button Grid.Column="1" Content="{Binding Main.ModrinthSearch.SelectedLoader, StringFormat='Loader: {0} ▾', FallbackValue='Loader: Any ▾', TargetNullValue='Loader: Any ▾'}">
+						<Button.Flyout>
+							<Flyout x:Name="LoaderFlyout" FlyoutPresenterClasses="slide" Placement="BottomEdgeAlignedLeft">
+								<StackPanel Spacing="4" MinWidth="160">
+									<TextBlock Text="LOADER" FontSize="10" FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextMutedBrush}" LetterSpacing="1" />
+									<Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                            Content="Any"
+                                            Command="{Binding Main.ModrinthSearch.SetLoaderCommand}"
+                                            CommandParameter="{x:Null}" />
+									<ItemsControl ItemsSource="{Binding Main.ModrinthSearch.AvailableLoaders}">
+										<ItemsControl.ItemTemplate>
+											<DataTemplate x:DataType="x:String">
+												<Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                                        Content="{Binding}"
+                                                        Command="{Binding $parent[ItemsControl].((vm:LibraryViewModel)DataContext).Main.ModrinthSearch.SetLoaderCommand}"
+                                                        CommandParameter="{Binding}" />
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
+								</StackPanel>
+							</Flyout>
+						</Button.Flyout>
+					</Button>
+
+					<Button Grid.Column="2" Content="Category ▾">
+						<Button.Flyout>
+							<Flyout x:Name="LibraryCategoryFlyout" FlyoutPresenterClasses="slide" Placement="BottomEdgeAlignedLeft">
+								<StackPanel Spacing="6" MinWidth="200">
+									<TextBlock Text="FILTER BY CATEGORY" FontSize="10" FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextMutedBrush}" LetterSpacing="1" />
+									<ItemsControl ItemsSource="{Binding Main.ModrinthSearch.CategoryFilterOptions}">
+										<ItemsControl.ItemTemplate>
+											<DataTemplate x:DataType="vm:FilterOptionViewModel">
+												<CheckBox IsChecked="{Binding IsSelected}" Content="{Binding Label}" />
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+									</ItemsControl>
+									<TextBlock Text="No categories for this type" FontSize="12"
+                                               Foreground="{StaticResource TextMutedBrush}"
+                                               IsVisible="{Binding Main.ModrinthSearch.CategoryFilterOptions.Count, Converter={x:Static converters:IsZeroConverter.Instance}}" />
+								</StackPanel>
+							</Flyout>
+						</Button.Flyout>
+					</Button>
+
+					<Button Grid.Column="3" Content="Sort ▾">
+						<Button.Flyout>
+							<Flyout x:Name="SortFlyout" FlyoutPresenterClasses="slide" Placement="BottomEdgeAlignedLeft">
+								<StackPanel Spacing="4" MinWidth="150">
+									<TextBlock Text="SORT BY" FontSize="10" FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextMutedBrush}" LetterSpacing="1" />
+									<Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Content="Relevance"
+                                            Command="{Binding Main.ModrinthSearch.SetSortIndexCommand}" CommandParameter="relevance" />
+									<Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Content="Downloads"
+                                            Command="{Binding Main.ModrinthSearch.SetSortIndexCommand}" CommandParameter="downloads" />
+									<Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Content="Newest"
+                                            Command="{Binding Main.ModrinthSearch.SetSortIndexCommand}" CommandParameter="newest" />
+									<Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Content="Recently updated"
+                                            Command="{Binding Main.ModrinthSearch.SetSortIndexCommand}" CommandParameter="updated" />
+								</StackPanel>
+							</Flyout>
+						</Button.Flyout>
+					</Button>
+
+					<Button Grid.Column="5" Content="← Back to Search"
+                            Command="{Binding Main.BackToSearchCommand}"
+                            IsVisible="{Binding Main.IsViewingInstance}"
+                            Margin="0,0,10,0" />
+
+					<TextBlock Grid.Column="6" Text="{Binding Main.ModrinthSearch.StatusMessage}"
+                               Foreground="{StaticResource TextMutedBrush}" FontSize="12"
+                               VerticalAlignment="Center" />
+				</Grid>
+
+				<Border Grid.Row="3" Height="1" Background="{StaticResource Surface1Brush}" />
+
+				<!-- Darker recessed area holding results, flush with the box below -->
+				<Border Grid.Row="4" Background="{StaticResource MantleBrush}"
+                        CornerRadius="0,0,10,10"
+                        Padding="20">
+					<Panel>
+
+						<!-- Search results -->
+						<Panel IsVisible="{Binding !Main.IsViewingInstance}">
+						<ListBox Classes="card-gallery"
+                                 ItemsSource="{Binding Main.ModrinthSearch.Results}">
+							<ListBox.ItemsPanel>
+								<ItemsPanelTemplate>
+									<WrapPanel />
+								</ItemsPanelTemplate>
+							</ListBox.ItemsPanel>
+							<ListBox.ItemTemplate>
+								<DataTemplate x:DataType="modrinth:ModrinthSearchHit">
+									<StackPanel Width="200" Spacing="10" HorizontalAlignment="Center">
+										<asyncImageLoader:AdvancedImage
+                                            Source="{Binding IconUrl}"
+                                            Width="64" Height="64"
+                                            HorizontalAlignment="Center" />
+
+										<TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="15"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   HorizontalAlignment="Center" TextAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" />
+
+										<TextBlock Text="{Binding Description}" TextWrapping="Wrap"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   FontSize="12" MaxLines="2" TextAlignment="Center" />
+
+										<StackPanel HorizontalAlignment="Center" Spacing="4">
+											<Border Classes="chip" HorizontalAlignment="Center">
+												<TextBlock Text="{Binding Categories, Converter={x:Static converters:CategoriesSummaryConverter.Instance}}" />
+											</Border>
+											<Border Classes="chip" HorizontalAlignment="Center">
+												<TextBlock Text="{Binding Downloads, StringFormat='{}{0:N0} downloads'}" />
+											</Border>
+											<Border Classes="chip" HorizontalAlignment="Center">
+												<TextBlock Text="{Binding Author}" />
+											</Border>
+										</StackPanel>
+
+										<Button HorizontalAlignment="Center" Content="+ Install"
+                                                Command="{Binding $parent[ListBox].((vm:LibraryViewModel)DataContext).Main.ModrinthSearch.InstallCommand}"
+                                                CommandParameter="{Binding}" />
+									</StackPanel>
+								</DataTemplate>
+							</ListBox.ItemTemplate>
+						</ListBox>
+
+						<TextBlock Text="No results — try a different search or filter" FontSize="13"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   IsVisible="{Binding Main.ModrinthSearch.Results.Count, Converter={x:Static converters:IsZeroConverter.Instance}}" />
+						</Panel>
+
+						<!-- Installed mods for the selected instance -->
+						<ListBox Classes="card-gallery"
+                                 ItemsSource="{Binding Main.InstanceMods}"
+                                 IsVisible="{Binding Main.IsViewingInstance}">
+							<ListBox.ItemsPanel>
+								<ItemsPanelTemplate>
+									<WrapPanel />
+								</ItemsPanelTemplate>
+							</ListBox.ItemsPanel>
+							<ListBox.ItemTemplate>
+								<DataTemplate x:DataType="models:InstalledMod">
+									<StackPanel Width="200" Spacing="10" HorizontalAlignment="Center">
+										<asyncImageLoader:AdvancedImage
+                                            Source="{Binding IconUrl}"
+                                            Width="64" Height="64"
+                                            HorizontalAlignment="Center" />
+
+										<TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="15"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   HorizontalAlignment="Center" TextAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" />
+
+										<StackPanel HorizontalAlignment="Center" Spacing="4">
+											<Border Classes="chip" HorizontalAlignment="Center">
+												<TextBlock Text="{Binding VersionNumber, StringFormat='Version: {0}'}" />
+											</Border>
+											<Border Classes="chip" HorizontalAlignment="Center">
+												<TextBlock Text="{Binding ProjectType}" />
+											</Border>
+										</StackPanel>
+									</StackPanel>
+								</DataTemplate>
+							</ListBox.ItemTemplate>
+						</ListBox>
+					</Panel>
+				</Border>
+			</Grid>
+		</Border>
+	</Grid>
 </UserControl>

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -40,9 +41,11 @@ public class InstanceService
     }
 
     public async Task<Instance> createInstance(string name, string? iconURL, string gameVersion, string loader,
-        string? description = "No description yet.")
+        List<string>? categories = null, string? description = "No description yet.")
     {
-        var instance = new Instance(name, gameVersion, loader, description, iconURL, new List<InstalledMod>());
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        var instance = new Instance(name, gameVersion, loader, description, iconURL, new List<InstalledMod>(),
+            categories ?? new List<string>(), now, now);
         await saveInstance(instance);
         return instance;
     }
@@ -63,7 +66,7 @@ public class InstanceService
             .Append(mod)
             .ToList();
         
-        Instance updated = instance with { Mods = updatedMods };
+        Instance updated = instance with { Mods = updatedMods, UpdatedAt = DateTimeOffset.UtcNow };
         await saveInstance(updated);
         return updated;
     }
@@ -74,7 +77,7 @@ public class InstanceService
             .Where(m => m.ProjectId != projectId)
             .ToList();
 
-        Instance updated = instance with { Mods = updatedMods };
+        Instance updated = instance with { Mods = updatedMods, UpdatedAt = DateTimeOffset.UtcNow };
         await saveInstance(updated);
         return updated;
     }

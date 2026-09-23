@@ -49,6 +49,8 @@ public class ModrinthService
         string? projectType = null,
         string? gameVersion = null,
         string? loader = null,
+        IEnumerable<string>? categories = null,
+        string? index = null, // relevance | downloads | follows | newest | updated
         int limit = 20,
         int offset = 0)
     {
@@ -56,11 +58,17 @@ public class ModrinthService
         if (projectType != null) facets.Add(new List<string> { $"project_type:{projectType}" });
         if (gameVersion != null) facets.Add(new List<string>{$"versions:{gameVersion}"});
         if (loader != null) facets.Add(new List<string>{$"categories:{loader}"});
-        
+        if (categories != null)
+        {
+            List<string> categoryFacets = categories.Select(c => $"categories:{c}").ToList();
+            if (categoryFacets.Count > 0) facets.Add(categoryFacets);
+        }
+
         var query_params = HttpUtility.ParseQueryString(string.Empty);
         query_params["query"] = query;
         query_params["limit"] = limit.ToString();
         query_params["offset"] = offset.ToString();
+        if (index != null) query_params["index"] = index;
         if (facets.Count > 0)
         {
             query_params["facets"] = JsonSerializer.Serialize(facets);
@@ -93,6 +101,15 @@ public class ModrinthService
             ?? throw new Exception("Failed to parse Modrinth project versions");
     }
     
+    // get all Modrinth tag categories (shared by Instance.Categories and, soon, Library's project filtering)
+
+    public async Task<List<ModrinthCategory>> getCategories()
+    {
+        string json = await getRateLimited($"{ApiUrl}/tag/category");
+        return JsonSerializer.Deserialize<List<ModrinthCategory>>(json)
+            ?? throw new Exception("Failed to parse Modrinth categories");
+    }
+
     // batch methods to get multiple projects info at once to limit requests
 
     public async Task<List<ModrinthProject>> getProjects(IEnumerable<string> projectIds)

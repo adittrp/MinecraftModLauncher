@@ -50,11 +50,113 @@
 
 		<!-- Shared sizing -->
 		<CornerRadius x:Key="CardRadius">10</CornerRadius>
+		<CornerRadius x:Key="ChipRadius">6</CornerRadius>
 		<Thickness x:Key="PageMargin">30</Thickness>
 		<Thickness x:Key="CardPadding">20</Thickness>
+		<Thickness x:Key="ChipPadding">8,3</Thickness>
 	</Application.Resources>
 
     <Application.Styles>
         <FluentTheme />
+
+        <!-- Shared "card" surface: base look for any grouped content block.
+             Add Classes="card" to a Border to opt in; ".compact" trims padding
+             for list rows. Defined once so new pages/lists stay visually consistent. -->
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="{StaticResource Surface0Brush}" />
+            <Setter Property="CornerRadius" Value="{StaticResource CardRadius}" />
+            <Setter Property="Padding" Value="{StaticResource CardPadding}" />
+        </Style>
+        <Style Selector="Border.card.compact">
+            <Setter Property="Padding" Value="12" />
+        </Style>
+        <Style Selector="Border.card.interactive:pointerover">
+            <Setter Property="Background" Value="{StaticResource Surface1Brush}" />
+        </Style>
+
+        <!-- Shared pill/badge for short metadata (version, loader, project type, counts). -->
+        <Style Selector="Border.chip">
+            <Setter Property="Background" Value="{StaticResource Surface1Brush}" />
+            <Setter Property="CornerRadius" Value="{StaticResource ChipRadius}" />
+            <Setter Property="Padding" Value="{StaticResource ChipPadding}" />
+        </Style>
+        <Style Selector="Border.chip TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+        </Style>
+
+        <!-- Shared selectable card gallery: add Classes="card-gallery" to any ListBox
+             with a WrapPanel ItemsPanel to get a wrapping grid of hoverable/selectable
+             cards. Reusable for instances now, and any future pickers (modpacks, servers). -->
+        <Style Selector="ListBox.card-gallery">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ListBox.card-gallery ListBoxItem">
+            <Setter Property="Background" Value="{StaticResource Surface0Brush}" />
+            <Setter Property="CornerRadius" Value="{StaticResource CardRadius}" />
+            <Setter Property="Padding" Value="20" />
+            <Setter Property="Margin" Value="0,0,16,16" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{StaticResource Surface2Brush}" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="ListBox.card-gallery ListBoxItem:pointerover">
+            <Setter Property="Background" Value="{StaticResource Surface1Brush}" />
+        </Style>
+        <Style Selector="ListBox.card-gallery ListBoxItem:selected">
+            <Setter Property="BorderBrush" Value="{StaticResource AccentGreenBrush}" />
+            <Setter Property="BorderThickness" Value="2" />
+        </Style>
+
+        <!-- Shared button baseline: every Button gets this look by default (rounded,
+             dark, theme-consistent) instead of raw Fluent chrome. Buttons that need
+             their own full look (e.g. MainWindow's "nav-btn") set every property
+             themselves at a more specific selector and are unaffected. -->
+        <Style Selector="Button">
+            <Setter Property="Background" Value="{StaticResource Surface1Brush}" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="Padding" Value="16,10" />
+            <Setter Property="CornerRadius" Value="{StaticResource ChipRadius}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource Surface2Brush}" />
+        </Style>
+        <Style Selector="Button:disabled /template/ ContentPresenter">
+            <Setter Property="Opacity" Value="0.5" />
+        </Style>
+
+        <!-- Slide-down + fade entrance for flyouts. Opt in with FlyoutPresenterClasses="slide"
+             on the Flyout, and toggle the "open" class from code-behind on Opened/Closed
+             (see HomeView.axaml.cs) — the class change is what fires these transitions. -->
+        <Style Selector="FlyoutPresenter.slide">
+            <Setter Property="RenderTransform" Value="translateY(-12px)" />
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.15" Easing="CubicEaseOut" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" Easing="CubicEaseOut" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="FlyoutPresenter.slide.open">
+            <Setter Property="RenderTransform" Value="translateY(0)" />
+            <Setter Property="Opacity" Value="1" />
+        </Style>
+
+        <!-- Shared primary action button (e.g. "Launch"). One definition, any page's
+             main call-to-action reuses it instead of repeating inline styling. -->
+        <Style Selector="Button.accent">
+            <Setter Property="Background" Value="{StaticResource AccentGreenBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource CrustBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="Padding" Value="24,12" />
+            <Setter Property="CornerRadius" Value="{StaticResource CardRadius}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
     </Application.Styles>
 </Application>

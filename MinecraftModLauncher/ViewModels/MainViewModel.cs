@@ -1,3 +1,6 @@
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MinecraftModLauncher.Models;
@@ -21,10 +24,10 @@ namespace MinecraftModLauncher.ViewModels {
         [ObservableProperty]
         private ViewModelBase _currentPage;
 
-        public ConsoleViewModel ConsolePage { get; }
-        public HomeViewModel HomePage { get; }
-        public LibraryViewModel LibraryPage { get; }
-        public SettingsViewModel SettingsPage { get; }
+        private ConsoleViewModel ConsolePage { get; }
+        private HomeViewModel HomePage { get; }
+        private LibraryViewModel LibraryPage { get; }
+        private SettingsViewModel SettingsPage { get; }
 
         [ObservableProperty]
         private string _currentPageTag = "Home";
@@ -64,6 +67,16 @@ namespace MinecraftModLauncher.ViewModels {
         public ObservableCollection<Instance> Instances { get; } = new();
         public ObservableCollection<InstalledMod> InstanceMods { get; } = new();
 
+        // Instances after the active Version/Loader/Category filters and date sort;
+        // this is what the Home gallery binds to instead of Instances directly.
+        public ObservableCollection<Instance> FilteredInstances { get; } = new();
+
+        public ObservableCollection<FilterOptionViewModel> VersionFilterOptions { get; } = new();
+        public ObservableCollection<FilterOptionViewModel> LoaderFilterOptions { get; } = new();
+        public ObservableCollection<FilterOptionViewModel> CategoryFilterOptions { get; } = new();
+
+        [ObservableProperty] private bool _dateSortDescending = true;
+
         [ObservableProperty]
         private Instance? _selectedInstance;
 
@@ -81,6 +94,12 @@ namespace MinecraftModLauncher.ViewModels {
         public ObservableCollection<string> AvailableGameVersions { get; } = new();
         public List<string> AvailableLoaders { get; } = new() { "fabric", "forge", "quilt", "neoforge" };
 
+        // Modrinth's real modpack category slugs, fetched once. Instance.Categories
+        // is drawn from this same list, so it lines up with Library's future
+        // category filtering with no separate/invented taxonomy.
+        public ObservableCollection<string> AvailableModpackCategories { get; } = new();
+        public ObservableCollection<FilterOptionViewModel> NewInstanceCategoryOptions { get; } = new();
+
         public ModrinthSearchViewModel ModrinthSearch { get; }
 
         public MainViewModel() {
@@ -96,12 +115,12 @@ namespace MinecraftModLauncher.ViewModels {
             _accountStore = new AccountStore(launcherRoot);
             _ = LoadInstances();
             _ = LoadAvailableGameVersions();
+            _ = LoadAvailableModpackCategories();
             _ = RestoreSession();
 
             ModrinthSearch = new ModrinthSearchViewModel(
                 _modrinthService,
                 getGameVersion: () => SelectedInstance?.GameVersion ?? "1.21.1", // replace with real selected variables
-                getLoader: () => SelectedInstance?.Loader ?? "fabric", // replace with real selected variables
                 installHandlers: new() {
                     ["mod"] = InstallMod,
                     ["modpack"] = InstallModpack
@@ -174,6 +193,89 @@ namespace MinecraftModLauncher.ViewModels {
         }
 
         [RelayCommand]
+        private async Task LoadAvailableModpackCategories() {
+            try {
+                List<ModrinthCategory> categories = await _modrinthService.getCategories();
+                AvailableModpackCategories.Clear();
+                foreach (ModrinthCategory category in categories.Where(c => c.ProjectType == "modpack"))
+                    AvailableModpackCategories.Add(category.Name);
+            } catch { // dont care
+            }
+        }
+
+        partial void OnDateSortDescendingChanged(bool value) => RefreshFilteredInstances();
+
+        // Rebuilds the Version/Loader/Category filter option lists (with fresh counts)
+        // from the current Instances, preserving whatever was already checked, then
+        // reapplies filtering/sorting. Call whenever Instances changes.
+        private void RebuildFilterOptions() {
+            List<string> checkedVersions = VersionFilterOptions.Where(o => o.IsSelected).Select(o => o.Value).ToList();
+            List<string> checkedLoaders = LoaderFilterOptions.Where(o => o.IsSelected).Select(o => o.Value).ToList();
+            List<string> checkedCategories = CategoryFilterOptions.Where(o => o.IsSelected).Select(o => o.Value).ToList();
+
+            VersionFilterOptions.Clear();
+            foreach (var group in Instances.GroupBy(i => i.GameVersion).OrderBy(g => g.Key)) {
+                var option = new FilterOptionViewModel(group.Key, group.Count()) { IsSelected = checkedVersions.Contains(group.Key) };
+                option.OnChanged = RefreshFilteredInstances;
+                VersionFilterOptions.Add(option);
+            }
+
+            LoaderFilterOptions.Clear();
+            foreach (var group in Instances.GroupBy(i => i.Loader).OrderBy(g => g.Key)) {
+                var option = new FilterOptionViewModel(group.Key, group.Count()) { IsSelected = checkedLoaders.Contains(group.Key) };
+                option.OnChanged = RefreshFilteredInstances;
+                LoaderFilterOptions.Add(option);
+            }
+
+            CategoryFilterOptions.Clear();
+            var categoryGroups = Instances
+                .SelectMany(i => i.Categories is { Count: > 0 } cats ? cats : new List<string> { "Uncategorized" })
+                .GroupBy(c => c)
+                .OrderBy(g => g.Key);
+            foreach (var group in categoryGroups) {
+                var option = new FilterOptionViewModel(group.Key, group.Count()) { IsSelected = checkedCategories.Contains(group.Key) };
+                option.OnChanged = RefreshFilteredInstances;
+                CategoryFilterOptions.Add(option);
+            }
+
+            RefreshFilteredInstances();
+        }
+
+        // Applies the current Version/Loader/Category filters and date sort to
+        // Instances, writing the result into FilteredInstances.
+        private void RefreshFilteredInstances() {
+            List<string> checkedVersions = VersionFilterOptions.Where(o => o.IsSelected).Select(o => o.Value).ToList();
+            List<string> checkedLoaders = LoaderFilterOptions.Where(o => o.IsSelected).Select(o => o.Value).ToList();
+            List<string> checkedCategories = CategoryFilterOptions.Where(o => o.IsSelected).Select(o => o.Value).ToList();
+
+            IEnumerable<Instance> query = Instances;
+
+            if (checkedVersions.Count > 0)
+                query = query.Where(i => checkedVersions.Contains(i.GameVersion));
+
+            if (checkedLoaders.Count > 0)
+                query = query.Where(i => checkedLoaders.Contains(i.Loader));
+
+            if (checkedCategories.Count > 0)
+                query = query.Where(i => (i.Categories is { Count: > 0 } cats ? cats : new List<string> { "Uncategorized" })
+                    .Any(checkedCategories.Contains));
+
+            query = DateSortDescending
+                ? query.OrderByDescending(i => i.UpdatedAt)
+                : query.OrderBy(i => i.UpdatedAt);
+
+            FilteredInstances.Clear();
+            foreach (Instance instance in query)
+                FilteredInstances.Add(instance);
+        }
+
+        [RelayCommand]
+        private void SortByDateNewest() => DateSortDescending = true;
+
+        [RelayCommand]
+        private void SortByDateOldest() => DateSortDescending = false;
+
+        [RelayCommand]
         private void BeginCreateInstance() {
             NewInstanceName = "";
             NewInstanceDescription = "";
@@ -181,12 +283,34 @@ namespace MinecraftModLauncher.ViewModels {
             NewInstanceGameVersion = AvailableGameVersions.Count > 0 ? AvailableGameVersions[0] : null;
             NewInstanceLoader = AvailableLoaders[0];
             CreateInstanceError = "";
+
+            NewInstanceCategoryOptions.Clear();
+            foreach (string category in AvailableModpackCategories)
+                NewInstanceCategoryOptions.Add(new FilterOptionViewModel(category));
+
             IsCreatingInstance = true;
         }
 
         [RelayCommand]
         private void CancelCreateInstance() {
             IsCreatingInstance = false;
+        }
+
+        [RelayCommand]
+        private async Task PickInstanceIcon() {
+            if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime { MainWindow: { } window })
+                return;
+
+            IReadOnlyList<IStorageFile> files = await window.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
+                Title = "Choose instance thumbnail",
+                AllowMultiple = false,
+                FileTypeFilter = new[] {
+                    new FilePickerFileType("Images") { Patterns = new[] { "*.png", "*.jpg", "*.jpeg", "*.webp" } }
+                }
+            });
+
+            if (files.Count > 0)
+                NewInstanceIconUrl = files[0].TryGetLocalPath();
         }
 
         [RelayCommand]
@@ -201,12 +325,18 @@ namespace MinecraftModLauncher.ViewModels {
                 return;
             }
 
+            List<string> selectedCategories = NewInstanceCategoryOptions
+                .Where(o => o.IsSelected)
+                .Select(o => o.Value)
+                .ToList();
+
             Instance created = await _instanceService.createInstance(NewInstanceName, NewInstanceIconUrl,
-                NewInstanceGameVersion, NewInstanceLoader!, NewInstanceDescription);
+                NewInstanceGameVersion, NewInstanceLoader!, selectedCategories, NewInstanceDescription);
 
             Instances.Add(created);
             IsCreatingInstance = false;
 
+            RebuildFilterOptions();
             SelectInstance(created);
         }
 
@@ -215,6 +345,8 @@ namespace MinecraftModLauncher.ViewModels {
             Instances.Clear();
             foreach (var instance in await _instanceService.loadAllInstances())
                 Instances.Add(instance);
+
+            RebuildFilterOptions();
         }
 
         [RelayCommand]
@@ -260,6 +392,7 @@ namespace MinecraftModLauncher.ViewModels {
             SelectedInstance = updated;
             int idx = Instances.IndexOf(instance);
             if (idx >= 0) Instances[idx] = updated;
+            RefreshFilteredInstances();
 
             InstanceMods.Clear();
             foreach (var mod in updated.Mods)

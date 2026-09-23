@@ -18,8 +18,13 @@ public record ModrinthSearchHit(
     string? IconUrl,
     [property: JsonPropertyName("downloads")]
     long Downloads,
-    [property: JsonPropertyName("project_type")] 
+    [property: JsonPropertyName("project_type")]
     string ProjectType, // mod, modpack, resourcepack, etc.
     [property: JsonPropertyName("versions")]
-    List<string> GameVersions
+    List<string> GameVersions,
+    // display_categories (not categories) — Modrinth's curated, loader-free subset
+    // meant for exactly this kind of UI display. Same slug vocabulary as
+    // ModrinthService.getCategories() and Instance.Categories.
+    [property: JsonPropertyName("display_categories")]
+    List<string>? Categories = null
 );
