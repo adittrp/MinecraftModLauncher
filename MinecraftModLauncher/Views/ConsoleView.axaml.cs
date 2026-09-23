@@ -8,4 +8,7 @@ public partial class ConsoleView : UserControl {
     public ConsoleView() {
         InitializeComponent();
     }
+    private void InitializeComponent() {
+        AvaloniaXamlLoader.Load(this);
+    }
 }

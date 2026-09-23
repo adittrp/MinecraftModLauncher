@@ -133,7 +133,7 @@ public class JavaService
     private async Task downloadRuntimeFiles(JsonElement files, string targetDir, Action<string>? onStatus)
     {
         var downloadTasks = new List<Task>();
-        int total = files.EnumerateObject().GetEnumberableCount();
+        int total = files.EnumerateObject().GetEnumerableCount();
         int completed = 0;
 
         foreach (JsonProperty entry in files.EnumerateObject())
@@ -237,7 +237,7 @@ public class JavaService
 // Add enumerable count to JsonElement
 internal static class JsonElementExtensions
 {
-    public static int GetEnumberableCount(this JsonElement.ObjectEnumerator enumerator)
+    public static int GetEnumerableCount(this JsonElement.ObjectEnumerator enumerator)
     {
         int count = 0;
         foreach (var _ in enumerator) count++;

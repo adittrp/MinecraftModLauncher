@@ -71,7 +71,7 @@ namespace MinecraftModLauncher.ViewModels
         [RelayCommand]
         private async Task Install(ModrinthSearchHit hit)
         {
-            if (_installHandlers.TryGetValue(hit.ProjectType, out var handler))
+            if (!_installHandlers.TryGetValue(hit.ProjectType, out var handler))
             {
                 StatusMessage = $"Cannot install {hit.ProjectType}s yet";
                 return;

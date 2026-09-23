@@ -1,21 +1,17 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Win32.SafeHandles;
 using MinecraftModLauncher.Models;
 using MinecraftModLauncher.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Security.Principal;
 using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
-using Avalonia.Controls;
 using MinecraftModLauncher.Models.Modrinth;
+using MinecraftModLauncher.Services.Launch;
 
 namespace MinecraftModLauncher.ViewModels {
     public partial class MainViewModel : ViewModelBase {
@@ -58,11 +54,12 @@ namespace MinecraftModLauncher.ViewModels {
         private static readonly HttpClient _httpClient = new() {
             Timeout = TimeSpan.FromSeconds(60)
         };
-        private static readonly SemaphoreSlim _downloadSemaphore = new(10);
         private readonly MicrosoftAuthService _authService = new();
         private readonly ModrinthService _modrinthService = new();
         private readonly InstanceService _instanceService;
         private readonly JavaService _javaService;
+        private readonly VersionManifestService _manifestService;
+        private readonly MinecraftLaunchService _launchService;
 
         public ObservableCollection<Instance> Instances { get; } = new();
         public ObservableCollection<InstalledMod> InstanceMods { get; } = new();
@@ -92,8 +89,10 @@ namespace MinecraftModLauncher.ViewModels {
             LibraryPage = new LibraryViewModel(this);
             SettingsPage = new SettingsViewModel();
 
+            _manifestService = new VersionManifestService(_httpClient, launcherRoot);
             _javaService = new JavaService(launcherRoot);
             _instanceService = new InstanceService(launcherRoot);
+            _launchService = new MinecraftLaunchService(launcherRoot, _httpClient, _javaService);
             _accountStore = new AccountStore(launcherRoot);
             _ = LoadInstances();
             _ = LoadAvailableGameVersions();
@@ -163,7 +162,7 @@ namespace MinecraftModLauncher.ViewModels {
         [RelayCommand]
         private async Task LoadAvailableGameVersions() {
             try {
-                JsonElement manifest = await FetchVersionManifest();
+                JsonElement manifest = await _manifestService.FetchVersionManifest();
                 AvailableGameVersions.Clear();
                 foreach (JsonElement version in manifest.GetProperty("versions").EnumerateArray()) {
                     if (version.GetProperty("type").GetString() == "release") {
@@ -268,265 +267,29 @@ namespace MinecraftModLauncher.ViewModels {
         }
 
         private async Task InstallModpack(ModrinthSearchHit hit) {
-
-        }
-
-        private async Task<JsonElement> FetchVersionManifest() {
-            string cachePath = Path.Combine(launcherRoot, "cache", "version_manifest_v2.json");
-
-            // Check and use cached metadata if it's recent enough
-            if (File.Exists(cachePath)) {
-                TimeSpan age = DateTime.UtcNow - File.GetLastWriteTimeUtc(cachePath);
-                if (age.TotalHours < 1) {
-                    string cached = await File.ReadAllTextAsync(cachePath);
-                    return JsonDocument.Parse(cached).RootElement;
-                }
-            }
-
-            string url = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
-            string json = await _httpClient.GetStringAsync(url);
-
-            Directory.CreateDirectory(Path.GetDirectoryName(cachePath)!);
-            await File.WriteAllTextAsync(cachePath, json);
-
-            return JsonDocument.Parse(json).RootElement;
-        }
-
-        private async Task<JsonElement> FetchVersionMetadata(string versionId) {
-            // Check if there's catched metadata
-            string cachePath = Path.Combine(launcherRoot, "cache", "versions", $"{versionId}.json");
-
-            if (File.Exists(cachePath)) {
-                string cached = await File.ReadAllTextAsync(cachePath);
-                return JsonDocument.Parse(cached).RootElement;
-            }
-
-            JsonElement manifest = await FetchVersionManifest();
-            JsonElement versions = manifest.GetProperty("versions");
-
-            foreach (JsonElement version in versions.EnumerateArray()) {
-                if (version.GetProperty("id").GetString() == versionId) {
-                    string metadataUrl = version.GetProperty("url").GetString()!;
-                    string json = await _httpClient.GetStringAsync(metadataUrl);
-
-                    Directory.CreateDirectory(Path.GetDirectoryName(cachePath)!);
-                    await File.WriteAllTextAsync(cachePath, json);
-
-                    return JsonDocument.Parse(json).RootElement;
-                }
-            }
-
-            throw new Exception($"Version {versionId} not found in manifest");
-        }
-
-        private async Task DownloadFile(string url, string destPath) {
-            if (File.Exists(destPath)) return;
-
-            await _downloadSemaphore.WaitAsync();
-            try {
-                Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
-
-                using HttpResponseMessage response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
-                response.EnsureSuccessStatusCode();
-
-                await using FileStream fileStream = new(destPath, FileMode.Create, FileAccess.Write, FileShare.None);
-                await response.Content.CopyToAsync(fileStream);
-            } catch (Exception ex) {
-                if (File.Exists(destPath)) File.Delete(destPath);
-
-                throw new Exception($"Failed to download {url}: {ex.Message}", ex);
-            } finally {
-                _downloadSemaphore.Release();
-            }
-        }
-
-        private async Task DownloadClientJar(JsonElement versionMeta, string versionsDir, string versionId) {
-            string url = versionMeta
-                .GetProperty("downloads")
-                .GetProperty("client")
-                .GetProperty("url")
-                .GetString()!;
-
-            string destPath = Path.Combine(versionsDir, versionId, $"{versionId}.jar");
-            await DownloadFile(url, destPath);
-        }
-
-        private async Task<List<string>> DownloadLibraries(JsonElement versionMeta, string librariesDir) {
-            var classpathEntries = new List<string>();
-            var downloadTasks = new List<Task>();
-            JsonElement libraries = versionMeta.GetProperty("libraries");
-
-            foreach (JsonElement lib in libraries.EnumerateArray()) {
-                if (!ShouldIncludeLibrary(lib))
-                    continue;
-
-                JsonElement downloads = lib.GetProperty("downloads");
-
-                if (downloads.TryGetProperty("artifact", out JsonElement artifact)) {
-                    string url = artifact.GetProperty("url").GetString()!;
-                    string relativePath = artifact.GetProperty("path").GetString()!;
-                    string fullPath = Path.Combine(librariesDir,
-                        relativePath.Replace('/', Path.DirectorySeparatorChar));
-
-                    classpathEntries.Add(fullPath);
-                    downloadTasks.Add(DownloadFile(url, fullPath));
-                }
-            }
-
-            await Task.WhenAll(downloadTasks);
-            return classpathEntries;
-        }
-
-        private bool ShouldIncludeLibrary(JsonElement lib) {
-            if (!lib.TryGetProperty("rules", out JsonElement rules))
-                return true;
-
-            bool allowed = false;
-
-            foreach (JsonElement rule in rules.EnumerateArray()) {
-                string action = rule.GetProperty("action").GetString()!;
-
-                if (rule.TryGetProperty("os", out JsonElement os)) {
-                    string osName = os.GetProperty("name").GetString()!;
-                    string currentOS = GetCurrentOsName();
-
-                    if (osName == currentOS)
-                        allowed = action == "allow";
-                } else {
-                    allowed = action == "allow";
-                }
-            }
-
-            return allowed;
-        }
-
-        private string GetCurrentOsName() {
-            if (OperatingSystem.IsWindows()) return "windows";
-            if (OperatingSystem.IsMacOS()) return "osx";
-            return "linux";
-        }
-
-
-        private void LaunchGame(
-            string javaPath,
-            string versionId,
-            JsonElement versionMeta,
-            List<string> libraryPaths,
-            string clientJarPath,
-            string gameDirPath,
-            string assetsDirPath
-        ) {
-            string classPathSeparator = OperatingSystem.IsWindows() ? ";" : ":";
-
-            var allJars = new List<string>(libraryPaths) { clientJarPath };
-            string classpath = string.Join(classPathSeparator, allJars);
-
-            string mainClass = versionMeta.GetProperty("mainClass").GetString()!;
-
-            string assetIndex = versionMeta
-                .GetProperty("assetIndex")
-                .GetProperty("id")
-                .GetString()!;
-
-            var startInfo = new ProcessStartInfo {
-                FileName = javaPath,
-                WorkingDirectory = gameDirPath,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
-            };
-
-
-
-            // JVM arguments
-            startInfo.ArgumentList.Add("-Xmx2G");
-            startInfo.ArgumentList.Add("-Xms512M");
-            startInfo.ArgumentList.Add($"-Djava.library.path={Path.Combine(gameDirPath, "natives")}");
-            startInfo.ArgumentList.Add("-cp");
-            startInfo.ArgumentList.Add(classpath);
-            startInfo.ArgumentList.Add(mainClass);
-
-            // Game arguments
-            startInfo.ArgumentList.Add("--username");
-            startInfo.ArgumentList.Add(Account?.Username ?? "Player");
-            startInfo.ArgumentList.Add("--version");
-            startInfo.ArgumentList.Add(versionId);
-            startInfo.ArgumentList.Add("--gameDir");
-            startInfo.ArgumentList.Add(gameDirPath);
-            startInfo.ArgumentList.Add("--assetsDir");
-            startInfo.ArgumentList.Add(assetsDirPath);
-            startInfo.ArgumentList.Add("--assetIndex");
-            startInfo.ArgumentList.Add(assetIndex);
-            startInfo.ArgumentList.Add("--uuid");
-            startInfo.ArgumentList.Add(Account?.Uuid ?? Guid.NewGuid().ToString("N"));
-            startInfo.ArgumentList.Add("--accessToken");
-            startInfo.ArgumentList.Add(Account?.AccessToken ?? "0");
-            startInfo.ArgumentList.Add("--userType");
-            startInfo.ArgumentList.Add(Account != null ? "msa" : "legacy");
-
-            Process process = new Process { StartInfo = startInfo };
-
-            process.OutputDataReceived += (sender, e) => {
-                if (!string.IsNullOrEmpty(e.Data)) ConsolePage.AddLog(e.Data);
-            };
-
-            process.ErrorDataReceived += (sender, e) => {
-                if (!string.IsNullOrEmpty(e.Data)) ConsolePage.AddLog($"[ERROR] {e.Data}");
-            };
-
-            process.Start();
-
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
+            throw new NotImplementedException("Not implemented yet");
         }
 
         [RelayCommand]
         private async Task LaunchMinecraft() {
-            string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            string launcherRoot = Path.Combine(appData, "MinecraftModLauncher");
-            string versionId = "1.21.1";
-
-            Greeting = "Fetching version metadata";
-            JsonElement versionMeta = await FetchVersionMetadata(versionId);
-
-            Greeting = "Downloading client";
-            string versionsDir = Path.Combine(launcherRoot, "versions");
-            string clientJarPath = Path.Combine(versionsDir, versionId, $"{versionId}.jar");
-            await DownloadClientJar(versionMeta, versionsDir, versionId);
-
-            Greeting = "Downloading libraries";
-            string librariesDir = Path.Combine(launcherRoot, "libraries");
-            List<string> libraryPaths = await DownloadLibraries(versionMeta, librariesDir);
-
-            Greeting = "Checking java runtime";
-            JavaRequirement requirement = _javaService.getRequiredJavaVersion(versionMeta);
-            string javaPath;
-            try {
-                javaPath = await _javaService.ensureJavaRuntime(requirement, status => Greeting = status);
-            } catch (Exception ex) {
-                Greeting = $"Failed to download Java runtime: {ex.Message}";
+            if (SelectedInstance is not { } instance)
+            {
+                Greeting = "Please select an instance first";
                 return;
             }
 
-            Greeting = "Launching";
-            string gameDir = Path.Combine(launcherRoot, "instances", "default", ".minecraft");
-            string assetsDir = Path.Combine(launcherRoot, "assets");
-            Directory.CreateDirectory(gameDir);
-
-
-            LaunchGame(
-                    javaPath,
-                    versionId,
-                    versionMeta,
-                    libraryPaths,
-                    clientJarPath,
-                    gameDir,
-                    assetsDir);
-
-
-
-            Greeting = "Launched game";
+            try
+            {
+                await _launchService.LaunchAsync(
+                    instance,
+                    Account,
+                    status => Greeting = status,
+                    ConsolePage.AddLog);
+            }
+            catch (Exception ex)
+            {
+                Greeting = $"Failed to launch: {ex.Message}";
+            }
         }
 
         [RelayCommand]

@@ -4,6 +4,7 @@
     <option name="projectPerEditor">
       <map>
         <entry key="MinecraftModLauncher/App.axaml" value="MinecraftModLauncher/MinecraftModLauncher.csproj" />
+        <entry key="MinecraftModLauncher/Views/ConsoleView.axaml" value="MinecraftModLauncher/MinecraftModLauncher.csproj" />
         <entry key="MinecraftModLauncher/Views/HomeView.axaml" value="MinecraftModLauncher/MinecraftModLauncher.csproj" />
         <entry key="MinecraftModLauncher/Views/HomeViewModel.axaml" value="MinecraftModLauncher/MinecraftModLauncher.csproj" />
         <entry key="MinecraftModLauncher/Views/LibraryView.axaml" value="MinecraftModLauncher/MinecraftModLauncher.csproj" />
