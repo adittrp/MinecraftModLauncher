@@ -17,9 +17,9 @@
                            Foreground="{StaticResource TextPrimaryBrush}"
                            VerticalAlignment="Center" />
 
-				<Button x:Name="TargetInstanceButton" Grid.Column="1" VerticalAlignment="Center">
+				<Button Grid.Column="1" VerticalAlignment="Center">
 					<Button.Flyout>
-						<Flyout FlyoutPresenterClasses="slide" Placement="BottomEdgeAlignedRight">
+						<Flyout Placement="BottomEdgeAlignedRight">
 							<StackPanel Spacing="4" MinWidth="200">
 								<TextBlock Text="INSTALL TO" FontSize="10" FontWeight="SemiBold"
                                            Foreground="{StaticResource TextMutedBrush}" LetterSpacing="1" />
@@ -67,9 +67,9 @@
 				<!-- Sort/filter bar -->
 				<Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto" Margin="20,12">
 
-					<Button x:Name="TypeButton" Grid.Column="0" Content="{Binding Main.ModrinthSearch.SelectedProjectType, StringFormat='Type: {0} ▾'}">
+					<Button Grid.Column="0" Content="{Binding Main.ModrinthSearch.SelectedProjectType, StringFormat='Type: {0} ▾'}">
 						<Button.Flyout>
-							<Flyout FlyoutPresenterClasses="slide" Placement="BottomEdgeAlignedLeft">
+							<Flyout Placement="BottomEdgeAlignedLeft">
 								<StackPanel Spacing="4" MinWidth="160">
 									<TextBlock Text="PROJECT TYPE" FontSize="10" FontWeight="SemiBold"
                                                Foreground="{StaticResource TextMutedBrush}" LetterSpacing="1" />
@@ -88,9 +88,9 @@
 						</Button.Flyout>
 					</Button>
 
-					<Button x:Name="LoaderButton" Grid.Column="1" Content="{Binding Main.ModrinthSearch.SelectedLoader, StringFormat='Loader: {0} ▾', FallbackValue='Loader: Any ▾', TargetNullValue='Loader: Any ▾'}">
+					<Button Grid.Column="1" Content="{Binding Main.ModrinthSearch.SelectedLoader, StringFormat='Loader: {0} ▾', FallbackValue='Loader: Any ▾', TargetNullValue='Loader: Any ▾'}">
 						<Button.Flyout>
-							<Flyout FlyoutPresenterClasses="slide" Placement="BottomEdgeAlignedLeft">
+							<Flyout Placement="BottomEdgeAlignedLeft">
 								<StackPanel Spacing="4" MinWidth="160">
 									<TextBlock Text="LOADER" FontSize="10" FontWeight="SemiBold"
                                                Foreground="{StaticResource TextMutedBrush}" LetterSpacing="1" />
@@ -113,9 +113,9 @@
 						</Button.Flyout>
 					</Button>
 
-					<Button x:Name="LibraryCategoryButton" Grid.Column="2" Content="Category ▾">
+					<Button Grid.Column="2" Content="Category ▾">
 						<Button.Flyout>
-							<Flyout FlyoutPresenterClasses="slide" Placement="BottomEdgeAlignedLeft">
+							<Flyout Placement="BottomEdgeAlignedLeft">
 								<StackPanel Spacing="6" MinWidth="200">
 									<TextBlock Text="FILTER BY CATEGORY" FontSize="10" FontWeight="SemiBold"
                                                Foreground="{StaticResource TextMutedBrush}" LetterSpacing="1" />
@@ -134,9 +134,9 @@
 						</Button.Flyout>
 					</Button>
 
-					<Button x:Name="SortButton" Grid.Column="3" Content="Sort ▾">
+					<Button Grid.Column="3" Content="Sort ▾">
 						<Button.Flyout>
-							<Flyout FlyoutPresenterClasses="slide" Placement="BottomEdgeAlignedLeft">
+							<Flyout Placement="BottomEdgeAlignedLeft">
 								<StackPanel Spacing="4" MinWidth="150">
 									<TextBlock Text="SORT BY" FontSize="10" FontWeight="SemiBold"
                                                Foreground="{StaticResource TextMutedBrush}" LetterSpacing="1" />

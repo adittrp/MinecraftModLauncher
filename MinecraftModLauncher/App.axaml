@@ -128,24 +128,6 @@
             <Setter Property="Opacity" Value="0.5" />
         </Style>
 
-        <!-- Slide-down + fade entrance for flyouts. Opt in with FlyoutPresenterClasses="slide"
-             on the Flyout, and toggle the "open" class from code-behind on Opened/Closed
-             (see HomeView.axaml.cs) — the class change is what fires these transitions. -->
-        <Style Selector="FlyoutPresenter.slide">
-            <Setter Property="RenderTransform" Value="translateY(-12px)" />
-            <Setter Property="Opacity" Value="0" />
-            <Setter Property="Transitions">
-                <Transitions>
-                    <DoubleTransition Property="Opacity" Duration="0:0:0.15" Easing="CubicEaseOut" />
-                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" Easing="CubicEaseOut" />
-                </Transitions>
-            </Setter>
-        </Style>
-        <Style Selector="FlyoutPresenter.slide.open">
-            <Setter Property="RenderTransform" Value="translateY(0)" />
-            <Setter Property="Opacity" Value="1" />
-        </Style>
-
         <!-- Shared primary action button (e.g. "Launch"). One definition, any page's
              main call-to-action reuses it instead of repeating inline styling. -->
         <Style Selector="Button.accent">
