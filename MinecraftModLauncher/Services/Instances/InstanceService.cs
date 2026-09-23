@@ -20,8 +20,10 @@ public class InstanceService
     private string getInstanceJsonPath(string instanceName) =>
     Path.Combine(_instancesRoot, instanceName, "instance.json");
     
+    // Must match MinecraftLaunchService's --gameDir (instances/{name}, no ".minecraft"
+    // nesting) — the game looks for mods directly under gameDir, not gameDir/.minecraft.
     public string getInstanceModsDir(string instanceName) =>
-    Path.Combine(_instancesRoot, instanceName, ".minecraft", "mods");
+    Path.Combine(_instancesRoot, instanceName, "mods");
 
     public async Task<List<Instance>> loadAllInstances()
     {

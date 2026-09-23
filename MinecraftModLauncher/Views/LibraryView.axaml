@@ -205,7 +205,28 @@
 
 										<Button HorizontalAlignment="Center" Content="+ Install"
                                                 Command="{Binding $parent[ListBox].((vm:LibraryViewModel)DataContext).Main.ModrinthSearch.InstallCommand}"
-                                                CommandParameter="{Binding}" />
+                                                CommandParameter="{Binding}">
+											<Button.IsVisible>
+												<MultiBinding Converter="{x:Static converters:IsProjectInstalledConverter.Instance}" ConverterParameter="invert">
+													<Binding Path="ProjectId" />
+													<Binding Path="$parent[ListBox].((vm:LibraryViewModel)DataContext).Main.InstanceMods" />
+													<Binding Path="$parent[ListBox].((vm:LibraryViewModel)DataContext).Main.InstanceMods.Count" />
+												</MultiBinding>
+											</Button.IsVisible>
+										</Button>
+
+										<Border Classes="chip" HorizontalAlignment="Center"
+                                                Background="{StaticResource AccentGreenBrush}">
+											<Border.IsVisible>
+												<MultiBinding Converter="{x:Static converters:IsProjectInstalledConverter.Instance}">
+													<Binding Path="ProjectId" />
+													<Binding Path="$parent[ListBox].((vm:LibraryViewModel)DataContext).Main.InstanceMods" />
+													<Binding Path="$parent[ListBox].((vm:LibraryViewModel)DataContext).Main.InstanceMods.Count" />
+												</MultiBinding>
+											</Border.IsVisible>
+											<TextBlock Text="✓ Installed" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource CrustBrush}" />
+										</Border>
 									</StackPanel>
 								</DataTemplate>
 							</ListBox.ItemTemplate>
